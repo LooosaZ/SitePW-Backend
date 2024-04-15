@@ -1,0 +1,18 @@
+{
+  "name": "package",
+  "version": "1.0.0",
+  "description": "Programacao para a Web - Backend",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon index.js"
+  },
+  "author": "Carlos Lopes (8230) & https://github.com/LooosaZ (8230545)",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "express": "^4.19.2",
+    "http": "^0.0.1-security",
+    "mongoose": "^8.3.1",
+    "nodemon": "^3.1.0"
+  }
+}
