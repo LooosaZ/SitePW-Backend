@@ -1,6 +1,6 @@
 const bodyParser = require("body-parser");
 const express = require("express");
-const users = require("../data/user/user");
+const Users = require("../data/user");
 
 const userRouter = () => {
     let router = express();
@@ -9,11 +9,36 @@ const userRouter = () => {
     router.use(bodyParser.urlencoded({ limit: "100mb", extended: true}));
 
     router
-    .route("users")
-    .get(function (req, res, next) {})
-    .post(function (rep, res, next) {})
-    .put(function (req, res, next) {})
-    .delete(function (req, res, next) {});
+    .route("/user")
+        .get(function (req, res, next) {
+            console.log('getting all users');
+            Users.findAll()
+                .then((user) => {
+                    res.send(user);
+                    next();
+                })
+                .catch((err) => {
+                    next();
+                });
+        })
+        .post(function (req, res, next) {
+            console.log("post");
+            let body = req.body;
+
+            Users.create(body)
+                .then(() => {
+                    console.log("Succesfully created a new user");
+                    res.status(200);
+                    res.send(body);
+                    next();
+                })
+                .catch((err) => {
+                    console.log("Username already in use. Choose another one");
+                    res.status(500).send("This username is already in use");
+                });
+        })
+    // .put(function (req, res, next) {})
+    // .delete(function (req, res, next) {});
 
     return router;
 }
