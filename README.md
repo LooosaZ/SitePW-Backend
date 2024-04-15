@@ -1,4 +1,4 @@
-This repo is the backend of a webside being done for my college degree.
+This repo is the backend of a website being done for my college degree.
 
 To do list:
 - Comment the code
