@@ -7,3 +7,7 @@ let ProductSchema = new Schema({
     nome: { type: String, require: true },
     preco: { type: Number, require: true }
 });
+
+let Product = mongoose.model("Product", ProductSchema);
+
+module.exports = Product;

@@ -3,9 +3,11 @@ const User = require("./user");
 function userController(UserModel) {
     let controller = {
         create,
-        findAll
+        findAll,
+        removeById,
+        findById,
     };
-
+    // .post method that creates and saves a new user
     function create(values) {
         let newUser = UserModel(values);
         return save(newUser);
@@ -20,6 +22,8 @@ function userController(UserModel) {
         });
     }
 
+
+    // .get method to display all users
     function findAll() {
         return new Promise(function (resolve, reject) {
             UserModel.find({})
@@ -28,6 +32,23 @@ function userController(UserModel) {
         });
     }
 
+    // .() method to find a specific user by its ID
+    function findById(id) {
+        return new Promise(function (resolve, reject) {
+            UserModel.findById(id)
+                .then((player) => resolve(player))
+                .catch((err) => reject(err));
+        });
+    }
+
+    //.delete method to delete a specific user by its ID
+    function removeById(id) {
+        return new Promise(function (resolve, reject) {
+            UserModel.findByIdAndDelete(id)
+                .then(() => resolve())
+                .catch((err) => reject(err));
+        });
+    }
     return controller;
 }
 

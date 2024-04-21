@@ -8,6 +8,7 @@ let SalesAPI = require("./server/sales");
 function initialize() {
     let api = express();
     api.use("/menu", UserAPI());
+    api.use("/stock", StockAPI());
 
     return api;
 }

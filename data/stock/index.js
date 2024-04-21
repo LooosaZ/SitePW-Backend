@@ -1,7 +1,7 @@
 const Stock = require('./stock');
 const StockController = require('./stockController');
 
-const stockController = new stockController(Stock);
+const service = new StockController(Stock);
 
-module.exports = StockController;
+module.exports = service;
 
