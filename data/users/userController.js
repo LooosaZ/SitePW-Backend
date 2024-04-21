@@ -1,13 +1,11 @@
-const User = require("./user");
-
-function userController(UserModel) {
+function UserController(UserModel) {
     let controller = {
         create,
         findAll,
         removeById,
         findById,
     };
-    // .post method that creates and saves a new user
+    // .post method that creates and saves a new users
     function create(values) {
         let newUser = UserModel(values);
         return save(newUser);
@@ -17,7 +15,7 @@ function userController(UserModel) {
         return new Promise(function (resolve, reject){
             newUser
                 .save()
-                .then(() => resolve("A new user has been created."))
+                .then(() => resolve("A new users has been created."))
                 .catch((err) => reject(err));
         });
     }
@@ -32,16 +30,16 @@ function userController(UserModel) {
         });
     }
 
-    // .() method to find a specific user by its ID
+    // .() method to find a specific users by its ID
     function findById(id) {
         return new Promise(function (resolve, reject) {
             UserModel.findById(id)
-                .then((player) => resolve(player))
+                .then((user) => resolve(user))
                 .catch((err) => reject(err));
         });
     }
 
-    //.delete method to delete a specific user by its ID
+    //.delete method to delete a specific users by its ID
     function removeById(id) {
         return new Promise(function (resolve, reject) {
             UserModel.findByIdAndDelete(id)
@@ -52,4 +50,4 @@ function userController(UserModel) {
     return controller;
 }
 
-module.exports = userController;
+module.exports = UserController;

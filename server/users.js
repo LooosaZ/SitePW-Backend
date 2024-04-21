@@ -1,6 +1,6 @@
 const bodyParser = require("body-parser");
 const express = require("express");
-const Users = require("../data/user");
+const Users = require("../data/users");
 
 const userRouter = () => {
     let router = express();
@@ -8,7 +8,7 @@ const userRouter = () => {
     router.use(bodyParser.json({ limit: "100mb"}));
     router.use(bodyParser.urlencoded({ limit: "100mb", extended: true}));
 
-    router.route("/user/get")
+    router.route("/users/get")
         .get(function (req, res, next) {
             console.log('getting all users');
             Users.findAll()
@@ -17,27 +17,28 @@ const userRouter = () => {
                     next();
                 })
                 .catch((err) => {
+                    console.log(err);
                     next();
                 });
         })
-        router.route("/user/create")
+        router.route("/users/create")
         .post(function (req, res, next) {
             console.log("post");
             let body = req.body;
 
             Users.create(body)
                 .then(() => {
-                    console.log("Successfully created a new user");
+                    console.log("Successfully created a new users");
                     res.status(200);
                     res.send(body);
                     next();
                 })
                 .catch((err) => {
-                    console.log("Username already in use. Choose another one");
+                    console.log(err);
                     res.status(500).send("This username is already in use");
                 });
         })
-        router.route("/user/:userID")
+        router.route("/users/:userID")
             .get(function (req, res, next){
                 let userID = req.params.userID;
                 console.log(`Finding a user by ID:${userID}`);
@@ -55,7 +56,7 @@ const userRouter = () => {
                     });
             })
     // .put(function (req, res, next) {})
-        router.route("/user/delete/:userID")
+        router.route("/users/delete/:userID")
             .delete(function (req, res, next) {
                 let userID = req.params.userID;
                 console.log(`Deleting user with ID:${userID}`);

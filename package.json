@@ -9,9 +9,11 @@
   "author": "Carlos Lopes (8230) & https://github.com/LooosaZ (8230545)",
   "license": "ISC",
   "dependencies": {
+    "bcrypt": "^5.1.1",
     "body-parser": "^1.20.2",
     "express": "^4.19.2",
     "http": "^0.0.1-security",
+    "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.3.1",
     "nodemon": "^3.1.0"
   }

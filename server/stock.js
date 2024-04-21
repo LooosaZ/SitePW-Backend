@@ -1,7 +1,7 @@
 const bodyParser = require("body-parser");
 const express = require("express");
 const Stock = require("../data/stock");
-const Users = require("../data/user");
+const Users = require("../data/users");
 
 const stockRouter = () => {
     let router = express();
