@@ -1,6 +1,7 @@
 const bodyParser = require("body-parser");
 const express = require("express");
 const Users = require("../data/users");
+const scopes = require("../data/users/scopes");
 
 const userRouter = () => {
     let router = express();
@@ -8,8 +9,29 @@ const userRouter = () => {
     router.use(bodyParser.json({ limit: "100mb"}));
     router.use(bodyParser.urlencoded({ limit: "100mb", extended: true}));
 
+    router.use(function (req, res, next) {
+        let token = req.headers["x-access-token"];
+        if (!token) {
+            return res
+                .status(400)
+                .send({auth: false, message: "No token provided"});
+        }
+
+        Users.verifyToken(token)
+            .then((decoded) => {
+                console.log("-=> VALID-TOKEN <=-");
+                console.log("DECODED -=>" + JSON.stringify(decoded, null, 2));
+                req.roleUser = decoded.role;
+                next();
+            })
+            .catch(() => {
+                res.status(401).send({auth: false, message: "Not authorized"});
+            });
+    });
+
     router.route("/users/get")
-        .get(function (req, res, next) {
+        .get(Users.authorize ([scopes["read-all"], scopes["read-posts"]]),
+            function (req, res, next) {
             console.log('getting all users');
             Users.findAll()
                 .then((user) => {
@@ -21,24 +43,23 @@ const userRouter = () => {
                     next();
                 });
         })
-        router.route("/users/create")
-        .post(function (req, res, next) {
-            console.log("post");
+        .post(Users.authorize([scopes["manage-posts"]]),
+            function (req, res, next) {
             let body = req.body;
-
             Users.create(body)
-                .then(() => {
-                    console.log("Successfully created a new users");
-                    res.status(200);
-                    res.send(body);
-                    next();
+            .then(() => {
+                console.log("Successfully created user");
+                res.status(200).send(body);
+                next();
                 })
                 .catch((err) => {
-                    console.log(err);
-                    res.status(500).send("This username is already in use");
+                    console.log(`Player already exists ${err}`);
+                    err.status = err.status || 500;
+                    res.status(401);
+                    next();
                 });
-        })
-        router.route("/users/:userID")
+            });
+        router.route("/users/get/:userID")
             .get(function (req, res, next){
                 let userID = req.params.userID;
                 console.log(`Finding a user by ID:${userID}`);

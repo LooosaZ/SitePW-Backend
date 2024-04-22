@@ -12,7 +12,7 @@ app.use(router.initialize());
 const server = http.Server(app);
 
 mongoose.connect(config.db)
-.then(() => console.log("Conection successful!"))
+.then(() => console.log("Connection successful!"))
 .catch((err) => console.error(err));
 
 

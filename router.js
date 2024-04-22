@@ -11,7 +11,6 @@ function initialize() {
     api.use("/menu", UserAPI());
     api.use("/stock", StockAPI());
     api.use("/auth", AuthAPI());
-
     return api;
 }
 
