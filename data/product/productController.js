@@ -1,5 +1,7 @@
 function ProductController(ProductModel) {
-    let controller = {}
+    let controller = {
+
+    }
 
     return controller
 }

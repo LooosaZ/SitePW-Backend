@@ -4,6 +4,7 @@ function stockController(StockModel) {
         create,
         findAll,
         removeById,
+        findById,
 
     };
     function create(values) {
@@ -32,6 +33,14 @@ function stockController(StockModel) {
         return new Promise(function (resolve, reject) {
             StockModel.findByIdAndDelete(id)
                 .then(() => resolve())
+                .catch((err) => reject(err));
+        });
+    }
+
+    function findById(id) {
+        return new Promise(function (resolve, reject) {
+            StockModel.findById(id)
+                .then((stock) => resolve(stock))
                 .catch((err) => reject(err));
         });
     }

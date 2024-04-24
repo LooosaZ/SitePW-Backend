@@ -1,7 +1,9 @@
 const bodyParser = require("body-parser");
 const express = require("express");
-const Stock = require("../data/stock");
+const Stocks = require("../data/stock");
 const Users = require("../data/users");
+const scopes = require("../data/users/scopes");
+
 
 const stockRouter = () => {
     let router = express();
@@ -9,11 +11,32 @@ const stockRouter = () => {
     router.use(bodyParser.json({ limit: "100mb" }));
     router.use(bodyParser.urlencoded({ limit: "100mb", extended: true }));
 
+    router.use(function (req, res, next) {
+        let token = req.headers["x-access-token"];
+        if (!token) {
+            return res
+                .status(400)
+                .send({auth: false, message: "No token provided"});
+        }
+
+        Users.verifyToken(token)
+            .then((decoded) => {
+                console.log("-=> VALID-TOKEN <=-");
+                console.log("DECODED -=>" + JSON.stringify(decoded, null, 2));
+                req.roleUser = decoded.role;
+                next();
+            })
+            .catch(() => {
+                res.status(401).send({auth: false, message: "Not authorized"});
+            });
+    });
+
     router.route("/getall")
-        .get(function (req, res, next) {
-            console.log('Getting stock contents');
-            Stock.findAll()
+        .get(Users.authorize ([scopes["read-all"], scopes["read-posts"]]),
+            function (req, res, next) {
+            Stocks.findAll()
                 .then((stock) => {
+                    console.log('Getting stock contents');
                     res.send(stock);
                     next();
                 })
@@ -21,12 +44,12 @@ const stockRouter = () => {
                     next();
                 });
         })
-    router.route("/:stockID")
+    router.route("/get/:stockID")
         .get(function (req, res, next){
             let stockID = req.params.stockID;
             console.log(`Finding stock by ID:${stockID}`);
 
-            Users.findById(stockID)
+            Stocks.findById(stockID)
                 .then((stock) => {
                     res.status(200);
                     res.send(stock);
@@ -43,7 +66,7 @@ const stockRouter = () => {
             console.log("Creating stock");
             let body = req.body;
 
-            Stock.create(body)
+            Stocks.create(body)
                 .then(() => {
                     console.log("Successfully created Stock");
                     res.status(200);
@@ -63,7 +86,7 @@ const stockRouter = () => {
             let stockID = req.params.stockID;
             console.log(`Deleting user with ID:${stockID}`);
 
-                Stock.removeById(stockID)
+                Stocks.removeById(stockID)
                     .then(() => {
                         console.log(`Successfully deleted stock`)
                         res.status(200)

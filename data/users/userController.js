@@ -86,19 +86,19 @@ function UserController(UserModel) {
     }
 
     function authorize(scopes) {
-        return (request, response, next) => {
-            const { roleUser } = request;
+        return (req, res, next) => {
+            const { roleUser } = req;
             console.log("Route scopes", scopes);
             console.log("User scopes", roleUser);
 
-            const hasAuthorization = scopes.some((scope) => {
-                return roleUser.includes(scope);
-            });
+            const hasAuthorization = scopes.some((scopes) => {
+                return roleUser.includes(scopes);
+            })
 
             if (roleUser && hasAuthorization) {
                 next();
             } else {
-                response.status(403).json({ message: "Forbidden"});
+                res.status(403).json({ message: "Forbidden"});
             }
         };
     }

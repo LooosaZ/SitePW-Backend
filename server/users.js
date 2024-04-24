@@ -32,9 +32,9 @@ const userRouter = () => {
     router.route("/users/get")
         .get(Users.authorize ([scopes["read-all"], scopes["read-posts"]]),
             function (req, res, next) {
-            console.log('getting all users');
             Users.findAll()
                 .then((user) => {
+                    console.log('getting all users');
                     res.send(user);
                     next();
                 })
@@ -43,6 +43,8 @@ const userRouter = () => {
                     next();
                 });
         })
+
+        router.route("/users/create")
         .post(Users.authorize([scopes["manage-posts"]]),
             function (req, res, next) {
             let body = req.body;
