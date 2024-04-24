@@ -12,6 +12,7 @@ function initialize() {
     api.use("/stock", StockAPI());
     api.use("/auth", AuthAPI());
     api.use("/sales", SalesAPI());
+    api.use("/product", ProductAPI());
     return api;
 }
 

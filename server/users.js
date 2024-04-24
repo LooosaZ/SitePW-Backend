@@ -78,7 +78,6 @@ const userRouter = () => {
                         next();
                     });
             })
-    // .put(function (req, res, next) {})
         router.route("/users/delete/:userID")
             .delete(function (req, res, next) {
                 let userID = req.params.userID;
