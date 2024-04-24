@@ -3,6 +3,8 @@ function ProductController(ProductModel) {
         create,
         findAll,
         findById,
+        removeById,
+        modifyByID
     }
 
     function create (product){
@@ -34,6 +36,23 @@ function ProductController(ProductModel) {
                 .catch((err) => reject(err));
         });
     }
+
+    function removeById(id) {
+        return new Promise(function (resolve, reject) {
+            ProductModel.findByIdAndDelete(id)
+                .then(() => resolve())
+                .catch((err) => reject(err));
+        });
+    }
+
+    // function modifyByID (id, newData) {
+    //     return new Promise(function (resolve, reject) {
+    //         ProductModel.findByIdAndUpdate(id, newData, { new: true })
+    //             .then(() => resolve())
+    //             .catch((err) => reject(err));
+    //     })
+    // }
+
     return controller
 }
 

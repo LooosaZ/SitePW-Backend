@@ -31,7 +31,7 @@ const productRouter = () => {
     });
 
     router.route("/get")
-        .get(Users.authorize ([scopes["read-all"], scopes["read-posts"]]),
+        .get(Users.authorize([scopes["read-all"], scopes["read-posts"]]),
             function (req, res, next) {
                 Products.findAll()
                     .then((product) => {
@@ -44,10 +44,58 @@ const productRouter = () => {
                         next();
                     });
             })
-        .post(function (req, res, next) {})
-        .put(function (req, res, next) {})
-        .delete(function (req, res, next) {});
+
+    router.route("/add")
+        .post(Users.authorize([scopes["read-all"], scopes["manage-posts"]]),
+            function (req, res, next) {
+                let body = req.body;
+                Products.create(body)
+                    .then(() => {
+                        console.log("Successfully added new product");
+                        res.status(200).send(body);
+                        next();
+                    })
+                    .catch((err) => {
+                        console.log(`Product already exists ${err}`);
+                        err.status = err.status || 500;
+                        res.status(401);
+                        next();
+                    });
+            });
+
+    router.route("/delete/:productID")
+        .delete(Users.authorize([scopes["read-all"], scopes["manage-posts"]]),
+            function (req, res, next) {
+                let productID = req.params.productID;
+                Products.removeById(productID)
+                    .then(() => {
+                        console.log(`Deleting Product with ID:${productID}`);
+                        res.status(200)
+                            .send(`Deleting Product with ID:${productID}`);
+                        next();
+                    })
+                    .catch((err) => {
+                        console.log(err);
+                        res.status(404)
+                            .send(`ID:${productID} does not exist`);
+                        next();
+                    })
+            })
+
+    // router.route("/modify/:productID")
+    //     .post(Users.authorize([scopes["read-all"], scopes["manage-posts"]]),
+    //         function (req, res, next) {
+    //             let productID = req.params.productID;
+    //             let newData = req.body;
+    //             Products.modifyByID()
+    //                 .then(() => {
+    //                     console.log(`Successfully modify product with ID:${productID}`);
+    //                     res.status(200).send(`Product ${newData} was successfully modified`);
+    //                 })
+    //         })
 
     return router;
 };
+
+
 module.exports = productRouter;

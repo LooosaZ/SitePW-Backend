@@ -5,6 +5,7 @@ function stockController(StockModel) {
         findAll,
         removeById,
         findById,
+        trackingById,
 
     };
     function create(values) {
@@ -45,6 +46,14 @@ function stockController(StockModel) {
         });
     }
 
+    function trackingById(id) {
+        return new Promise(function (resolve, reject) {
+            StockModel.findById(id)
+                .then((stock) => resolve(stock.movimento))
+                .then((stock) => resolve(stock.data))
+                .catch((err) => reject(err));
+        });
+    }
 
     return controller;
 }

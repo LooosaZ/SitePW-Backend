@@ -55,17 +55,17 @@ const userRouter = () => {
                 next();
                 })
                 .catch((err) => {
-                    console.log(`Player already exists ${err}`);
+                    console.log(`User already exists ${err}`);
                     err.status = err.status || 500;
                     res.status(401);
                     next();
                 });
             });
         router.route("/users/get/:userID")
-            .get(function (req, res, next){
+            .get(Users.authorize ([scopes["read-all"], scopes["read-posts"]]),
+                function (req, res, next){
                 let userID = req.params.userID;
                 console.log(`Finding a user by ID:${userID}`);
-
                 Users.findById(userID)
                     .then((user) => {
                         res.status(200);
@@ -79,7 +79,8 @@ const userRouter = () => {
                     });
             })
         router.route("/users/delete/:userID")
-            .delete(function (req, res, next) {
+            .delete(Users.authorize ([scopes["read-all"], scopes["read-posts"]]),
+                function (req, res, next) {
                 let userID = req.params.userID;
                 console.log(`Deleting user with ID:${userID}`);
 

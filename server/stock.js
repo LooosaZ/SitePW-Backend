@@ -45,7 +45,8 @@ const stockRouter = () => {
                 });
         })
     router.route("/get/:stockID")
-        .get(function (req, res, next){
+        .get(Users.authorize ([scopes["read-all"], scopes["read-posts"]]),
+            function (req, res, next){
             let stockID = req.params.stockID;
             console.log(`Finding stock by ID:${stockID}`);
 
@@ -62,7 +63,8 @@ const stockRouter = () => {
                 });
         })
     router.route("/create")
-        .post(function (req, res, next) {
+        .post(Users.authorize ([scopes["read-all"], scopes["read-posts"]]),
+            function (req, res, next) {
             console.log("Creating stock");
             let body = req.body;
 
@@ -82,7 +84,8 @@ const stockRouter = () => {
 
         })
     router.route("/delete/:stockID")
-        .delete(function (req, res, next) {
+        .delete(Users.authorize ([scopes["read-all"], scopes["read-posts"]]),
+            function (req, res, next) {
             let stockID = req.params.stockID;
             console.log(`Deleting user with ID:${stockID}`);
 
@@ -101,6 +104,20 @@ const stockRouter = () => {
                     });
             });
 
+    router.route("/track/:stockID")
+        .get(Users.authorize([scopes["read-all"], scopes["read-posts"]]),
+            function (req, res, next) {
+                let stockID = req.params.stockID
+                Stocks.trackingById(stockID)
+                    .then((stock) => {
+                        console.log(`tracking ${stockID}`);
+                        res.send(stock);
+                        next();
+                    })
+                    .catch((err) => {
+                        next();
+                    });
+            })
     return router;
 };
 

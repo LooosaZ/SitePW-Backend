@@ -6,7 +6,7 @@ function salesController(SaleModel) {
     function findAll() {
         return new Promise(function (resolve, reject) {
             SaleModel.find({})
-                .then((users) => resolve(users))
+                .then((sales) => resolve(sales))
                 .catch((err) => reject(err));
         });
     }
@@ -14,10 +14,11 @@ function salesController(SaleModel) {
     function findById(id) {
         return new Promise(function (resolve, reject) {
             SaleModel.findById(id)
-                .then((stock) => resolve(stock))
+                .then((sales) => resolve(sales))
                 .catch((err) => reject(err));
         });
     }
+
 
 
     return controller;
