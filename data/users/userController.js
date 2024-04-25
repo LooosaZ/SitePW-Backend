@@ -1,20 +1,25 @@
-const jwt = require('jsonwebtoken');
-const config = require('../../config');
-const bcrypt = require("bcrypt");
+// This function initializes a UserController with CRUD operations and user management operations.
+
+const jwt = require('jsonwebtoken');  // Importing JSON Web Token module
+const config = require('../../config');  // Importing configuration settings
+const bcrypt = require("bcrypt");  // Importing bcrypt for password hashing
 
 function UserController(UserModel) {
+    // Object to hold controller functions
     let controller = {
-        create,
-        findAll,
-        removeById,
-        findById,
-        createToken,
-        verifyToken,
-        findUser,
-        authorize,
+        create,          // Function to create a new user
+        findAll,         // Function to find all users
+        removeById,      // Function to remove a user by its ID
+        findById,        // Function to find a user by its ID
+        createToken,     // Function to create a JWT token for user authentication
+        verifyToken,     // Function to verify a JWT token
+        findUser,        // Function to find a user by name and password
+        authorize,       // Function to authorize user access based on roles
     };
-    // .post method that creates and saves a new users
+
+    // Function to create a new user
     function create(user) {
+        // Create password hash and save user
         return createPassword(user).then((hashPassword, err) => {
             if (err) {
                 return Promise.reject("Not saved");
@@ -29,62 +34,71 @@ function UserController(UserModel) {
         })
     }
 
+    // Function to save a user
     function save(model) {
+        // Return a promise for asynchronous handling
         return new Promise(function (resolve, reject) {
             model
-                .save()
-                .then(() => resolve("A new user has been created."))
-                .catch((err) => reject(`There was an error with your register ${err}`));
+                .save()  // Save the user to the database
+                .then(() => resolve("A new user has been created."))  // Resolve if successful
+                .catch((err) => reject(`There was an error with your register ${err}`));  // Reject if an error occurs
         });
     }
 
+    // Function to create a JWT token for user authentication
     function createToken(user) {
         let token = jwt.sign(
-            {id: user._id, name: user.name, role: user.role.scopes},
-            config.secret,
+            {id: user._id, name: user.name, role: user.role.scopes},  // Payload containing user information
+            config.secret,  // Secret key for token generation
             {
-                expiresIn: config.expiresPassword,
+                expiresIn: config.expiresPassword,  // Token expiration time
             }
         );
 
-        return { auth: true, token };
+        return { auth: true, token };  // Return token for authentication
     }
 
+    // Function to verify a JWT token
     function verifyToken(token) {
+        // Return a promise for asynchronous handling
         return new Promise( (resolve, reject) => {
             jwt.verify(token, config.secret, (err, decoded) => {
                 if (err) {
-                    reject();
+                    reject();  // Reject if token verification fails
                 }
-                return resolve(decoded);
+                return resolve(decoded);  // Resolve with decoded token data
             });
         });
     }
 
-    function findUser ({ name, password }) {
+    // Function to find a user by name and password
+    function findUser({ name, password }) {
+        // Return a promise for asynchronous handling
         return new Promise(function (resolve, reject) {
-            UserModel.findOne({ name })
+            UserModel.findOne({ name })  // Find user by name
                 .then((user) => {
-                    if (!user) return reject("User not found");
+                    if (!user) return reject("User not found");  // Reject if user not found
                     return comparePassword(password, user.password).then((match) => {
-                        return resolve(user);
+                        return resolve(user);  // Resolve with user if password matches
                     });
                 })
                 .catch((err) => {
-                    reject(`There was a problem with login ${err}`);
+                    reject(`There was a problem with login ${err}`);  // Reject if an error occurs
                 });
         });
     }
-    //returns encrypted password
-    function createPassword (user) {
-        return bcrypt.hash(user.password, config.saltRounds);
+
+    // Function to hash user password
+    function createPassword(user) {
+        return bcrypt.hash(user.password, config.saltRounds);  // Hash user password
     }
 
-    //checks if sent password matches the encrypted password
+    // Function to compare password with hashed password
     function comparePassword(password, hash) {
-        return bcrypt.compare(password, hash);
+        return bcrypt.compare(password, hash);  // Compare password with hash
     }
 
+    // Function to authorize user access based on roles
     function authorize(scopes) {
         return (req, res, next) => {
             const { roleUser } = req;
@@ -96,40 +110,44 @@ function UserController(UserModel) {
             })
 
             if (roleUser && hasAuthorization) {
-                next();
+                next();  // Proceed to the next middleware if authorized
             } else {
-                res.status(403).json({ message: "Forbidden"});
+                res.status(403).json({ message: "Forbidden"});  // Respond with Forbidden status if not authorized
             }
         };
     }
 
-    // .get method to display all users
+    // Function to find all users
     function findAll() {
+        // Return a promise for asynchronous handling
         return new Promise(function (resolve, reject) {
-            UserModel.find({})
-                .then((users) => resolve(users))
-                .catch((err) => reject(err));
+            UserModel.find({})  // Find all users
+                .then((users) => resolve(users))  // Resolve with the found users
+                .catch((err) => reject(err));  // Reject if an error occurs
         });
     }
 
-    // .() method to find a specific users by its ID
+    // Function to find a user by its ID
     function findById(id) {
+        // Return a promise for asynchronous handling
         return new Promise(function (resolve, reject) {
-            UserModel.findById(id)
-                .then((user) => resolve(user))
-                .catch((err) => reject(err));
+            UserModel.findById(id)  // Find user by ID
+                .then((user) => resolve(user))  // Resolve with the found user
+                .catch((err) => reject(err));  // Reject if an error occurs
         });
     }
 
-    //.delete method to delete a specific users by its ID
+    // Function to remove a user by its ID
     function removeById(id) {
+        // Return a promise for asynchronous handling
         return new Promise(function (resolve, reject) {
-            UserModel.findByIdAndDelete(id)
-                .then(() => resolve())
-                .catch((err) => reject(err));
+            UserModel.findByIdAndDelete(id)  // Find and delete user by ID
+                .then(() => resolve())  // Resolve if successful
+                .catch((err) => reject(err));  // Reject if an error occurs
         });
     }
-    return controller;
+
+    return controller;  // Return the controller object with all user management functions
 }
 
-module.exports = UserController;
+module.exports = UserController;  // Export the UserController function
