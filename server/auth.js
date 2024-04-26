@@ -67,6 +67,18 @@ function AuthRouter() {
                 });
         });
 
+    router.route("/users/recover-password")
+        .post(function (req, res, next) {
+            const { email } = req.body;
+            Users.recoverPassword(email)
+                .then((message) => {
+                    res.status(200).send(message); // Respond with success message
+                })
+                .catch((err) => {
+                    res.status(400).send(err); // Respond with error message
+                });
+        });
+
     return router;  // Returning the configured router
 }
 

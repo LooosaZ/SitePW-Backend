@@ -1,6 +1,7 @@
 const express = require('express');
 const http = require('http');
 const config = require("./config");
+require('dotenv').config();
 
 const hostname = '127.0.0.1';
 const port = 3000;
@@ -14,6 +15,7 @@ const server = http.Server(app);
 mongoose.connect(config.db)
 .then(() => console.log("Connection successful!"))
 .catch((err) => console.error(err));
+
 
 
 server.listen(port, hostname, () => {
