@@ -10,7 +10,7 @@ let ProductSchema = new Schema({
 });
 
 let salesSchema = new Schema({
-    nrVenda: {type: Number, require: true, unique: true},
+    nrVenda: {type: Number, require: true, unique: true, min: 0},
     cliente: {type: String, require: true },
     produtos: [{ type: ProductSchema }],
     total: {type: Number, require: true},
