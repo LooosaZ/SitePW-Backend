@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon index.js"
   },
-  "author": "João Coelho (8230465), Roberto Batista (8230471)",
+  "author": "Lorenzo Sartori e Carlos Lopes",
   "license": "ISC",
   "dependencies": {
     "bcrypt": "^5.1.1",
