@@ -1,79 +1,149 @@
-// This function initializes a stockController with CRUD operations for interacting with a StockModel.
+const Stock = require("./stock");
 
-const Stock = require("./stock");  // Importing Stock model
 
 function stockController(StockModel) {
-    // Object to hold controller functions
     let controller = {
-        create,           // Function to create a new stock
-        findAll,          // Function to find all stocks
-        removeById,       // Function to remove a stock by its ID
-        findById,         // Function to find a stock by its ID
-        trackingById      // Function to track movements of a stock by its ID
+        create,
+        findAll,
+        findByReferencia,
+        updateByReferencia,
+        deleteByReferencia,
+        findByRefProduto,
+        removeByReferencia,
+        updateStockDelete,
+        updateStock
     };
 
-    // Function to create a new stock
     function create(values) {
-        let newStock = StockModel(values);  // Create a new stock instance
-        return save(newStock);  // Save the new stock
+        let newStock = StockModel(values);
+        return save(newStock);
     }
 
-    // Function to save a stock
     function save(newStock) {
-        // Return a promise for asynchronous handling
         return new Promise(function (resolve, reject) {
             newStock
-                .save()  // Save the stock to the database
-                .then(() => {
-                    console.log(`New stock created.`);
-                    resolve("New stock created.");  // Resolve if successful
+                .save()
+                .then(() => resolve("O movimento de stock foi adicionado!"))
+                .catch((err) => reject(err));
+        });
+    }
+
+    function findAll(sortOptions) {
+        return new Promise(function (resolve, reject) {
+            StockModel.find({})
+                .sort(sortOptions)
+                .then((stocks) => resolve(stocks))
+                .catch((err) => reject(err));
+        });
+    }
+
+    function findByReferencia(referencia) {
+        return new Promise(function (resolve, reject) {
+            StockModel.findOne({ referencia: referencia })
+                .then((stock) => resolve(stock))
+                .catch((err) => reject(err));
+        });
+    }
+
+    function updateByReferencia(referencia, stock) {
+        return new Promise(function (resolve, reject) {
+            StockModel.findOneAndUpdate({ referencia }, stock)
+                .then(() => resolve(stock))
+                .catch((err) => reject(err));
+        });
+    }
+
+    function deleteByReferencia(referencia) {
+        return new Promise(function (resolve, reject) {
+            StockModel.findOneAndDelete({ referencia })
+                .then((stock) => {
+                    if (!stock) {
+                        reject("Não foi possível encontrar um movimento de stock com essa referência!");
+                    }
+                    resolve();
                 })
-                .catch((err) => reject(err));  // Reject if an error occurs
+                .catch((err) => reject(err));
         });
     }
 
-    // Function to find all stocks
-    function findAll() {
-        // Return a promise for asynchronous handling
+    function removeByReferencia(refProduto) {
         return new Promise(function (resolve, reject) {
-            StockModel.find({})  // Find all stocks
-                .then((stocks) => resolve(stocks))  // Resolve with the found stocks
-                .catch((err) => reject(err));  // Reject if an error occurs
+            StockModel.findOneAndDelete({ refProduto })
+                .then(() => {
+                    resolve();
+                })
+                .catch((err) => {
+                    reject(err);
+                });
         });
     }
 
-    // Function to remove a stock by its ID
-    function removeById(id) {
-        // Return a promise for asynchronous handling
+    function findByRefProduto(refProduto) {
         return new Promise(function (resolve, reject) {
-            StockModel.findByIdAndDelete(id)  // Find and delete stock by ID
-                .then(() => resolve())  // Resolve if successful
-                .catch((err) => reject(err));  // Reject if an error occurs
+            StockModel.findOne({ refProduto: refProduto })
+                .then((stock) => resolve(stock))
+                .catch((err) => reject(err));
         });
     }
 
-    // Function to find a stock by its ID
-    function findById(id) {
-        // Return a promise for asynchronous handling
-        return new Promise(function (resolve, reject) {
-            StockModel.findById(id)  // Find stock by ID
-                .then((stock) => resolve(stock))  // Resolve with the found stock
-                .catch((err) => reject(err));  // Reject if an error occurs
+    function updateStock(refProduto, diffQuantidade) {
+        return new Promise((resolve, reject) => {
+            StockModel.findOne({ refProduto: refProduto })
+                .then((produto) => {
+                    if (!produto) {
+                        reject(`Produto ${refProduto} não encontrado no stock`);
+                        return;
+                    }
+
+                    if (diffQuantidade > 0) {
+                        if (produto.quantidade < diffQuantidade) {
+                            reject(`Não há stock suficiente para remover ${diffQuantidade} unidades do produto ${refProduto}`);
+                            return;
+                        }
+                        return StockModel.findOneAndUpdate(
+                            { refProduto: refProduto },
+                            { $inc: { quantidade: -diffQuantidade } },
+                            { new: true }
+                        );
+                    }
+                    return StockModel.findOneAndUpdate(
+                        { refProduto: refProduto },
+                        { $inc: { quantidade: Math.abs(diffQuantidade) } },
+                        { new: true }
+                    );
+                })
+                .then((produtoAtualizado) => {
+                    resolve(produtoAtualizado);
+                })
+                .catch((error) => {
+                    reject(error);
+                });
         });
     }
 
-    // Function to track movements of a stock by its ID
-    function trackingById(id) {
-        // Return a promise for asynchronous handling
-        return new Promise(function (resolve, reject) {
-            StockModel.findById(id)  // Find stock by ID
-                .then((stock) => resolve(stock.movimento))  // Resolve with the movements of the stock
-                .then((stock) => resolve(stock.data))  // Resolve with the dates of the movements
-                .catch((err) => reject(err));  // Reject if an error occurs
-        });
+    async function updateStockDelete(refProduto, diffQuantidade) {
+        try {
+            const produto = await StockModel.findOne({ refProduto: refProduto });
+
+            if (!produto) {
+                throw new Error(`Produto ${refProduto} não encontrado no stock`);
+            }
+
+            const novoStock = produto.quantidade + diffQuantidade;
+
+            const produtoAtualizado = await StockModel.findOneAndUpdate(
+                { refProduto: refProduto },
+                { quantidade: novoStock },
+                { new: true }
+            );
+
+            return produtoAtualizado;
+        } catch (error) {
+            throw error;
+        }
     }
 
-    return controller;  // Return the controller object with all CRUD operations
+    return controller;
 }
 
-module.exports = stockController;  // Export the stockController function
+module.exports = stockController;

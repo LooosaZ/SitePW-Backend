@@ -1,14 +1,14 @@
-let mongoose = require("mongoose");
+var mongoose = require("mongoose");
 
 let Schema = mongoose.Schema;
 
-let StockSchema = new Schema({
-
-    movimento: {type: String, require: true},
-    quantidade: {type: Number ,require: true, min: 10},
-    data: {data: {type: Date, default: Date.now}},
-    total: {type: Number, require: true, min:10},
-
+var StockSchema = new Schema({
+    referencia: { type: Number, require: true, unique: true },
+    movimento: { type: String, require: true },
+    quantidade: { type: Number, require: true },
+    refProduto: { type: Number, require: true },
+    data: { type: Date, require: true },
+    anotacoes: { type: String, require: false }
 });
 
 let Stock = mongoose.model("Stock", StockSchema);

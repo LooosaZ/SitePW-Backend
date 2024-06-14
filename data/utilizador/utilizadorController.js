@@ -3,7 +3,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const { request } = require("express");
 
-function userController(UserModel) {
+function utilizadorController(UtilizadorModel) {
     let controller = {
         create,
         findAll,
@@ -23,20 +23,21 @@ function userController(UserModel) {
         updateResetToken,
         findByEmail,
         findFavorites,
-        updateFavorites
+        updateFavorites,
+        updateProfilePicture
     };
 
-    function create(user) {
-        return createPassword(user).then((hashPassword, err) => {
+    function create(utilizador) {
+        return createPassword(utilizador).then((hashPassword, err) => {
             if (err) {
-                return Promise.reject("Password not saved.");
+                return Promise.reject("A palavra-passe não foi guardada!");
             }
 
             let newUserWithPassword = {
-                ...user,
+                ...utilizador,
                 password: hashPassword,
             };
-            let newUser = new UserModel(newUserWithPassword);
+            let newUser = new UtilizadorModel(newUserWithPassword);
             return save(newUser);
         });
     }
@@ -45,17 +46,17 @@ function userController(UserModel) {
         return new Promise((resolve, reject) => {
             model
                 .save()
-                .then(() => resolve("A new user was successfully created."))
-                .catch((err) => reject(`There was a problem while creating a new user: ${err}`));
+                .then(() => resolve("O utilizador foi criado com sucesso."))
+                .catch((err) => reject(`Existe um problema com a gravação do registo: ${err}`));
         });
     }
 
-    function createToken(user) {
+    function createToken(utilizador) {
         let token = jwt.sign(
             {
-                username: user.username,
-                nome: user.nome,
-                role: user.role.scopes,
+                username: utilizador.username,
+                nome: utilizador.nome,
+                role: utilizador.role.scopes,
             },
             config.secret,
             {
@@ -78,34 +79,34 @@ function userController(UserModel) {
 
     function findUser({ username, password }) {
         return new Promise(function (resolve, reject) {
-            UserModel.findOne({ username })
-                .then((user) => {
-                    if (!user) {
-                        return reject("There is no user with this name!");
+            UtilizadorModel.findOne({ username })
+                .then((utilizador) => {
+                    if (!utilizador) {
+                        return reject("Não foi possível encontrar um utilizador com esse username!");
                     }
-                    return comparePassword(password, user.password).then((match) => {
+                    return comparePassword(password, utilizador.password).then((match) => {
                         if (!match) {
-                            return reject("Password is incorrect");
+                            return reject("Palavra-passe incorreta!");
                         }
-                        return resolve(user);
+                        return resolve(utilizador);
                     });
                 })
                 .catch((err) => {
-                    reject(`An error occurred while trying to findUser: ${err}`);
+                    reject(`Existe um problema com a gravação do registo: ${err}`);
                 });
         });
     }
 
     function findByEmail(email) {
         return new Promise(function (resolve, reject) {
-            UserModel.findOne({ email })
-                .then((user) => resolve(user))
+            UtilizadorModel.findOne({ email })
+                .then((utilizador) => resolve(utilizador))
                 .catch((err) => reject(err));
         });
     }
 
-    function createPassword(user) {
-        return bcrypt.hash(user.password, config.saltRounds)
+    function createPassword(utilizador) {
+        return bcrypt.hash(utilizador.password, config.saltRounds)
     }
 
     function comparePassword(password, hash) {
@@ -115,68 +116,68 @@ function userController(UserModel) {
     function authorize(scopes) {
         return (request, response, next) => {
             const { roleUser } = request;
-            console.log("Router Scopes: ", scopes);
-            console.log("User Scopes: ", roleUser);
+            console.log("Scopes do router: ", scopes);
+            console.log("Scopes do utilizador: ", roleUser);
 
             const hasAuthorization = scopes.some((scope) => roleUser.includes(scope));
 
             if (roleUser && hasAuthorization) {
                 next();
             } else {
-                response.status(403).json({ message: "Forbidden, not authorized" });
+                response.status(403).json({ message: "Não tem privilégios suficientes para essa operação!" });
             }
         };
     }
 
     function findAll(sortOptions) {
         return new Promise(function (resolve, reject) {
-            UserModel.find({})
+            UtilizadorModel.find({})
                 .sort(sortOptions)
-                .then((users) => resolve(users))
+                .then((utilizadores) => resolve(utilizadores))
                 .catch((err) => reject(err));
         });
     }
 
     function findFavorites(username) {
-        return UserModel.findOne({ username })
-            .then((user) => {
-                if (!user) {
-                    throw new Error("User not found.");
+        return UtilizadorModel.findOne({ username })
+            .then((utilizador) => {
+                if (!utilizador) {
+                    throw new Error("Utilizador não encontrado");
                 }
-                return user.token;
+                return utilizador.token;
             })
             .catch((err) => {
-                throw new Error("An error occurred while trying to find user favorites: " + err.message);
+                throw new Error("Erro ao encontrar favoritos do utilizador: " + err.message);
             });
     }
 
     function findByUsername(username) {
         return new Promise(function (resolve, reject) {
-            UserModel.findOne({ username: username })
-                .then((user) => resolve(user))
+            UtilizadorModel.findOne({ username: username })
+                .then((utilizador) => resolve(utilizador))
                 .catch((err) => reject(err));
         });
     }
 
-    function updateByUsername(username, user) {
+    function updateByUsername(username, utilizador) {
         return new Promise(function (resolve, reject) {
-            UserModel.findOneAndUpdate({ username }, user)
-                .then(() => resolve(user))
+            UtilizadorModel.findOneAndUpdate({ username }, utilizador)
+                .then(() => resolve(utilizador))
                 .catch((err) => reject(err));
         });
     }
 
     function updateFavorites(username, referencia, add) {
         return new Promise(function (resolve, reject) {
-            userModel.findOne({ username })
+            UtilizadorModel.findOne({ username })
                 .then((user) => {
                     if (!user) {
-                        throw new Error('User not found.');
+                        throw new Error('Utilizador não encontrado');
                     }
-
+    
                     // Verifique se a referência já está nos favoritos do usuário
                     const index = user.favoritos.indexOf(referencia);
-
+    
                     // Adicione ou remova a referência dos favoritos do usuário, dependendo do valor de 'add'
                     if (add) {
                         if (index === -1) {
@@ -187,21 +188,21 @@ function userController(UserModel) {
                             user.favoritos.splice(index, 1); // Remove a referência dos favoritos
                         }
                     }
-
+    
                     // Salve as alterações no usuário
                     return user.save();
                 })
-                .then(() => resolve({ message: 'Favorites updated successfully.' }))
+                .then(() => resolve({ message: 'Favoritos atualizados com sucesso' }))
                 .catch((err) => reject(err));
         });
     }
 
     function deleteByUsername(username) {
         return new Promise(function (resolve, reject) {
-            UserModel.findOneAndDelete({ username })
-                .then((user) => {
-                    if (!user) {
-                        reject("There is no user with this name.");
+            UtilizadorModel.findOneAndDelete({ username })
+                .then((utilizador) => {
+                    if (!utilizador) {
+                        reject("Não foi possível encontrar um utilizador com esse username!");
                     }
                     resolve();
                 })
@@ -211,8 +212,8 @@ function userController(UserModel) {
 
     function findUserByEmail(email) {
         return new Promise(function (resolve, reject) {
-            UserModel.findOne({ email: email })
-                .then((user) => resolve(user))
+            UtilizadorModel.findOne({ email: email })
+                .then((utilizador) => resolve(utilizador))
                 .catch((err) => reject(err));
         });
     }
@@ -226,19 +227,36 @@ function userController(UserModel) {
 
     async function updatePassword(id, novaPassword) {
         const hashedPassword = await bcrypt.hash(novaPassword, 10);
-        return await UserModel.findByIdAndUpdate(id, { password: hashedPassword });
+        return await UtilizadorModel.findByIdAndUpdate(id, { password: hashedPassword });
     }
 
-    // Método para limpar o token de password de um user
+    // Método para limpar o token de password de um utilizador
     async function clearResetToken(id) {
-        return await UserModel.findByIdAndUpdate(id, { resetToken: null });
+        return await UtilizadorModel.findByIdAndUpdate(id, { resetToken: null });
     }
 
-    // Método para atualizar o token de password para um user
+    // Método para atualizar o token de password para um utilizador
     async function updateResetToken(id, resetToken) {
-        return await UserModel.findByIdAndUpdate(id, { resetToken });
+        return await UtilizadorModel.findByIdAndUpdate(id, { resetToken });
+    }
+
+    function updateProfilePicture(username, image) {
+        return new Promise((resolve, reject) => {
+            UtilizadorModel.findOneAndUpdate(
+                { username },
+                { fotoPerfil: image },
+                { new: true }
+            )
+                .then((utilizador) => {
+                    if (!utilizador) {
+                        return reject("User not found.");
+                    }
+                    resolve(utilizador);
+                })
+                .catch((err) => reject(err));
+        });
     }
     return controller;
 }
 
-module.exports = userController;
+module.exports = utilizadorController;

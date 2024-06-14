@@ -1,72 +1,94 @@
-// Importing the Stock model for managing stock data
-const Stock = require("../stock/stock");
-
-// Function for managing sales-related operations
-function salesController(SaleModel) {
-    // Object containing controller functions
+function salesController(salesModel) {
     let controller = {
+        create,
         findAll,
-        findById,
-        addSale,
+        update,
+        findByNrVenda,
+        removeByNrVenda,
+        findByUsername,
+        findByNrVendaAndUsername
     };
 
-    // Function to find all sales
+    function create(values) {
+        let newSale = salesModel(values);
+        return save(newSale);
+    }
+
+    function save(newSale) {
+        return new Promise(function (resolve, reject) {
+            newSale
+                .save()
+                .then(() => resolve("Successfully sold the item."))
+                .catch((err) => reject(err));
+        });
+    }
+
     function findAll() {
         return new Promise(function (resolve, reject) {
-            SaleModel.find({})  // Finding all sales
-                .then((sales) => resolve(sales))  // Resolving with found sales
-                .catch((err) => reject(err));  // Rejecting with error if any
+            salesModel.find({})
+                .then((sales) => resolve(sales))
+                .catch((err) => reject(err));
         });
     }
 
-    // Function to find a sale by ID
-    function findById(id) {
+    function findByNrVenda(nrSale) {
         return new Promise(function (resolve, reject) {
-            SaleModel.findById(id)  // Finding sale by ID
-                .then((sales) => resolve(sales))  // Resolving with found sale
-                .catch((err) => reject(err));  // Rejecting with error if any
+            salesModel.findOne({ nrVenda: nrSale })
+                .then((sale) => resolve(sale))
+                .catch((err) => reject(err));
         });
     }
 
-    // Async function to add a new sale
-    async function addSale(saleDetails) {
-        try {
-            // Calculate the number of items purchased
-            const nrVenda = saleDetails.produtos.length;
-
-            // Create a new sale object with the provided details
-            const newSale = new SaleModel({
-                nrVenda,
-                cliente: saleDetails.cliente,
-                produtos: saleDetails.produtos,
-                total: saleDetails.total,
-                estado: saleDetails.estado,
-                data: saleDetails.data || Date.now(), // Use current date if not provided
-            });
-
-            // Save the new sale to the database
-            const savedSale = await newSale.save();
-
-            // Subtract the amount of items purchased from the stock
-            const stockItems = await Stock.findOne(); // Assuming there's only one stock entry
-            if (stockItems) {
-                stockItems.quantidade -= nrVenda; // Subtract nrVenda from the stock quantity
-                await stockItems.save(); // Save the updated stock
-
-                // Check if stock is low
-                if (stockItems.quantidade < 10) {
-                    console.log('Warning: RE-STOCK IS NEEDED.');
-                }
-            }
-
-            return savedSale; // Returning the saved sale
-        } catch (err) {
-            console.log(err); // Logging error if occurred
-            throw err; // Throwing error
-        }
+    function findByUsername(usernameUser) {
+        return new Promise(function (resolve, reject) {
+            salesModel.find({usernameUser})
+                .then((sales) => {
+                    if (sales.length === 0) {
+                        reject("This user has not bought anything.");
+                        return;
+                    }
+                    resolve(sales);
+                })
+                .catch((err) => reject(err));
+        });
     }
 
-    return controller; // Returning the controller object
+    function findByNrVendaAndUsername(nrSale, username) {
+        return new Promise(function (resolve, reject) {
+            salesModel.findOne({ nrSale, username })
+                .then((sale) => {
+                    if (!sale) {
+                        reject("This sale does not exist.");
+                        return;
+                    }
+                    resolve(sale);
+                })
+                .catch((err) => reject(err));
+        });
+    }
+
+    function update(nrSale, sale) {
+        return new Promise(function (resolve, reject) {
+            salesModel.findOneAndUpdate({ nrSale }, sale)
+                .then(() => resolve(sale))
+                .catch((err) => reject(err));
+        });
+    }
+
+    function removeByNrVenda(nrSale) {
+        return new Promise(function (resolve, reject) {
+            salesModel.findOneAndDelete({ nrVenda: nrSale })
+                .then((sale) => {
+                    if (!sale) {
+                        reject("There is no sale with said reference");
+                    }
+                    resolve();
+                })
+                .catch((err) => reject(err));
+        });
+    }
+
+    return controller;
 }
 
-module.exports = salesController; // Exporting the salesController function
+module.exports = salesController;

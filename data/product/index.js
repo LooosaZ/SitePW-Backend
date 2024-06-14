@@ -1,6 +1,5 @@
 const Product = require('./product');
 const ProductController = require('./productController');
+const service = new ProductController(Product);
 
-const productController = new ProductController(Product);
-
-module.exports = productController;
+module.exports = service;

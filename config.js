@@ -1,13 +1,7 @@
-require('dotenv').config();
-
-const dbName = process.env.DB_NAME;
-const dbSecret = process.env.DB_SECRET;
-
 const config = {
-    db: dbName,
-    secret:dbSecret,
-    expiresPassword: 86400, //one day token duration. (change this later on development)
+    db: "mongodb+srv://LoosaZ:aulaspw@pw-cluster.eno3da7.mongodb.net/?retryWrites=true&w=majority",
+    secret: "CRSIsecretpassword",
+    expiresPassword: 86400,
     saltRounds: 10,
 };
-
 module.exports = config;

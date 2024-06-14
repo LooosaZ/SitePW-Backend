@@ -1,19 +1,20 @@
 const express = require("express");
 
-let ProductAPI = require("./server/products");
+let ProdutoAPI = require("./server/produtos");
 let StockAPI = require("./server/stock");
-let UserAPI = require("./server/users");
-let SalesAPI = require("./server/sales");
-let AuthAPI = require("./server/auth");
+let UtilizadorAPI = require("./server/utilizadores");
+let VendaAPI = require("./server/vendas");
+let AuthApi = require("./server/auth");
 
-function initialize() {
+function initialize(app) {
     let api = express();
-    api.use("/menu", UserAPI());
-    api.use("/stock", StockAPI());
-    api.use("/auth", AuthAPI());
-    api.use("/sales", SalesAPI());
-    api.use("/product", ProductAPI());
+    api.use("/menu", UtilizadorAPI());
+    api.use("/menu", VendaAPI());
+    api.use("/menu", ProdutoAPI());
+    api.use("/menu", StockAPI());
+    api.use("/auth", AuthApi());
+
     return api;
 }
 
-module.exports = {initialize: initialize};
+module.exports = { initialize: initialize };

@@ -1,85 +1,133 @@
-// This function initializes an authentication router for handling user registration, authentication, and token verification.
-
-const bodyParser = require('body-parser');  // Importing body-parser for parsing request bodies
-const express = require('express');  // Importing express framework
-const Users = require('../data/users');  // Importing user data management functions
+const bodyParser = require("body-parser");
+const express = require("express");
+const Utilizadores = require("../data/utilizador");
+const EmailService = require("../server/emailService");
+const scopes = require("../data/utilizador/scopes");
 
 function AuthRouter() {
-    let router = express();  // Creating an instance of express router
+    let router = express();
 
-    // Middleware for parsing JSON and URL-encoded request bodies with size limits
     router.use(bodyParser.json({ limit: "100mb" }));
     router.use(bodyParser.urlencoded({ limit: "100mb", extended: true }));
 
-    // Route for user registration
-    router.route("/register")
-        .post(function (req, res, next) {
-            const body = req.body;  // Extracting request body
-            console.log("User:", body);  // Logging user information
-            Users.create(body)  // Creating a new user
-                .then(() => Users.createToken(body))  // Creating JWT token for the user
-                .then((response) => {
-                    res.status(200);  // Setting response status
-                    console.log("User token:", response);  // Logging user token
-                    res.send(response);  // Sending token in response
-                })
-                .catch((err) => {
-                    res.status(500).send(err);  // Sending error response if any error occurs
-                    next();  // Proceeding to the next middleware
-                });
-        });
+    router.post("/register", async (req, res) => {
+        try {
+            let body = req.body;
 
-    // Route for getting user information
-    router.route("/me")
-        .get(function (req, res, next) {
-            let token = req.headers['x-access-token'];  // Extracting token from request headers
-
-            if (!token) {
-                return res.status(401).send({ auth: false, message: "No token provided" });  // Sending response if no token provided
+            if (!body.username || !body.password || !body.nome || !body.morada || !body.telemovel || !body.dataNascimento || !body.nif || !body.email) {
+                return res.status(400).send("Todos os campos devem ser preenchidos.");
             }
 
-            return Users.verifyToken(token)  // Verifying the token
-                .then((decoded) => {
-                    console.log(decoded);  // Logging decoded token data
-                    res.status(202).send({ auth: true, token: decoded });  // Sending response with token data
-                })
-                .catch((err) => {
-                    res.status(500).send(err);  // Sending error response if token verification fails
-                    next();  // Proceeding to the next middleware
-                });
-        });
+            let verificarUser = await Utilizadores.findByUsername(body.username);
+            if (verificarUser) {
+                return res.status(400).send("Esse username já está em uso, escolha outro!");
+            }
 
-    // Route for user login
-    router.route("/login")
-        .post(function (req, res, next) {
-            let body = req.body;  // Extracting request body
-            console.log("Login for user:", body);  // Logging login information
-            return Users.findUser(body)  // Finding user based on login credentials
-                .then((user) => {
-                    return Users.createToken(user);  // Creating JWT token for the user
-                })
-                .then((response) => {
-                    res.status(200).send(response);  // Sending token in response
-                })
-                .catch((err) => {
-                    res.status(500).send(err);  // Sending error response if login fails
-                    next();  // Proceeding to the next middleware
-                });
-        });
+            let verificarEmail = await Utilizadores.findByEmail(body.email);
+            if (verificarEmail) {
+                return res.status(400).send("Esse email já está em uso, escolha outro!");
+            }
 
-    router.route("/users/recover-password")
-        .post(function (req, res, next) {
+            body.role = body.role || { nome: "utilizador", scopes: [scopes.utilizador] };
+
+            if (body.role.scopes) {
+                for (let scope of body.role.scopes) {
+                    if (!Object.values(scopes).includes(scope)) {
+                        return res.status(400).send("Scope inválido: " + scope);
+                    }
+                }
+            }
+
+            let novoUtilizador = await Utilizadores.create(body);
+            res.status(200).json({ success: true, user: novoUtilizador });
+        } catch (error) {
+            console.error("Erro:", error);
+            res.status(500).send("Ocorreu um erro ao registrar um utilizador.");
+        }
+    });
+
+    router.route("/me").get(function (req, res, next) {
+        let token = req.headers["x-access-token"];
+
+        if (!token) { return res.status(401).send({ auth: false, message: "Sem token para verificação!" }); }
+
+        return Utilizadores.verifyToken(token)
+            .then((decoded) => { res.status(202).send({ auth: true, decoded }); })
+            .catch((err) => {
+                res.status(500).send(err);
+                next();
+            });
+    });
+
+    router.post("/login", function (req, res) {
+        const { username, password } = req.body;
+
+        Utilizadores.findUser({ username, password })
+            .then(utilizador => {
+                if (!utilizador) {
+                    throw new Error("Utilizador não encontrado");
+                }
+                return Utilizadores.createToken(utilizador);
+            })
+            .then(({ token }) => {
+                res.cookie('token', token, { httpOnly: false, secure: true, sameSite: 'Strict', maxAge: 24 * 60 * 60 * 1000 });
+                res.send({ auth: true });
+            })
+            .catch(err => {
+                res.status(401).json({ auth: false, message: err.message });
+            });
+    });
+
+    router.route("/forgot-password").post(async function (req, res, next) {
+        try {
             const { email } = req.body;
-            Users.recoverPassword(email)
-                .then((message) => {
-                    res.status(200).send(message); // Respond with success message
-                })
-                .catch((err) => {
-                    res.status(400).send(err); // Respond with error message
-                });
-        });
+            if (!email) {
+                return res.status(400).json({ error: "O email é obrigatório para a recuperação da password!" });
+            }
+            const user = await Utilizadores.findUserByEmail(email);
+            if (!user) {
+                return res.status(404).json({ error: "Utilizador não foi encontrado com o email fornecido" });
+            }
 
-    return router;  // Returning the configured router
+            const resetToken = Utilizadores.generateResetToken();
+            await Utilizadores.updateResetToken(user.id, resetToken);
+            await EmailService.sendPasswordResetEmail(email, resetToken);
+
+            res.status(200).json({ success: "Instruções de recuperação de palavra-passe enviadas para o seu email" });
+        } catch (error) {
+            console.error("Erro:", error);
+            res.status(500).json({ error: "Erro ao processar a solicitação de recuperação de password!" });
+        }
+    });
+
+    router.route("/reset-password").post(async function (req, res, next) {
+        try {
+            const { email, token, novaPassword } = req.body;
+    
+            if (!email || !token || !novaPassword) {
+                return res.status(400).json({ error: "Email, token e nova password são campos obrigatórios para redefinir a password!" });
+            }
+    
+            const user = await Utilizadores.findUserByEmail(email);
+            if (!user) {
+                return res.status(404).json({ error: "Não foi possível encontrar um utilizador com esse email!" });
+            }
+    
+            if (user.resetToken !== token) {
+                return res.status(400).json({ error: "O token é inválido!" });
+            }
+    
+            await Utilizadores.updatePassword(user.id, novaPassword);
+            await Utilizadores.clearResetToken(user.id);
+    
+            res.status(200).json({ success: "Password redefinida com sucesso." });
+        } catch (error) {
+            console.error("Erro ao processar a solicitação de redefinição de password:", error);
+            res.status(500).json({ error: "Erro ao processar a solicitação de redefinição de password!" });
+        }
+    });
+
+    return router;
 }
 
-module.exports = AuthRouter;  // Exporting the AuthRouter function
+module.exports = AuthRouter;

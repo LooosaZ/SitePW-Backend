@@ -8,7 +8,7 @@ let StockSchema = new Schema({
     anotacoes: { type: String, require: true },
 });
 
-let ProductSchema = new Schema({
+var ProdutoSchema = new Schema({
     referencia: { type: Number, require: true, unique: true },
     nome: { type: String, require: true },
     descricao: { type: String, require: true },
@@ -18,6 +18,6 @@ let ProductSchema = new Schema({
     imagem: { type: String, require: false },
 });
 
-let Product = mongoose.model("Product", ProductSchema);
+let Produto = mongoose.model("Produto", ProdutoSchema);
 
-module.exports = Product;
+module.exports = Produto;

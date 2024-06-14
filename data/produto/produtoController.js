@@ -1,4 +1,4 @@
-function ProductController(ProductModel) {
+function ProdutoController(ProdutoModel) {
     let controller = {
         create,
         findAll,
@@ -9,30 +9,30 @@ function ProductController(ProductModel) {
     };
 
     function create(values) {
-        let newProduct = ProductModel(values);
-        return save(newProduct);
+        let newProduto = ProdutoModel(values);
+        return save(newProduto);
     }
 
-    function save(newProduct) {
+    function save(newProduto) {
         return new Promise(function (resolve, reject) {
-            newProduct
+            newProduto
                 .save()
-                .then(() => resolve("Successfully created a new product"))
+                .then(() => resolve("O produto foi criado com sucesso!"))
                 .catch((err) => reject(err));
         });
     }
 
     function findAll(filter) {
         return new Promise(function (resolve, reject) {
-            ProductModel.find(filter)
+            ProdutoModel.find(filter)
                 .then((produtos) => resolve(produtos))
                 .catch((err) => reject(err));
         });
-    }
+    }    
 
     function findByreferencia(referencia) {
         return new Promise(function (resolve, reject) {
-            ProductModel.findOne({ referencia: referencia })
+            ProdutoModel.findOne({ referencia: referencia })
                 .then((produto) => resolve(produto))
                 .catch((err) => reject(err));
         });
@@ -40,7 +40,7 @@ function ProductController(ProductModel) {
 
     function update(referencia, produto) {
         return new Promise(function (resolve, reject) {
-            ProductModel.findOneAndUpdate({ referencia }, produto)
+            ProdutoModel.findOneAndUpdate({ referencia }, produto)
                 .then(() => resolve(produto))
                 .catch((err) => reject(err));
         });
@@ -48,10 +48,10 @@ function ProductController(ProductModel) {
 
     function removeByreferencia(referencia) {
         return new Promise(function (resolve, reject) {
-            ProductModel.findOneAndDelete({ referencia })
+            ProdutoModel.findOneAndDelete({ referencia })
                 .then((Produto) => {
                     if (!Produto) {
-                        reject("There is no product with said reference");
+                        reject("Não foi possível encontrar um produto com essa referência!");
                     }
                     resolve();
                 })
@@ -59,10 +59,10 @@ function ProductController(ProductModel) {
         });
     }
 
-    function findByRefProduto(refProduct) {
+    function findByRefProduto(refProduto) {
         return new Promise(function (resolve, reject) {
-            ProductModel.findOne({ referencia: refProduct })
-                .then((product) => resolve(product))
+            ProdutoModel.findOne({ referencia: refProduto })
+                .then((produto) => resolve(produto))
                 .catch((err) => reject(err));
         });
     }
@@ -70,4 +70,4 @@ function ProductController(ProductModel) {
     return controller;
 }
 
-module.exports = ProductController;
+module.exports = ProdutoController;
