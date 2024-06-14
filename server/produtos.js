@@ -22,36 +22,32 @@ const produtoRouter = () => {
                 searchValue,
                 minPrice,
                 maxPrice,
+                stockStatus // Captura do parâmetro stockStatus
             } = req.query;
             
             const defaultSort = { referencia: 1 };
             const sortOptions = {};
             const filter = {};
-    
-            // Adicionar filtros de ordenação
+        
             if (sortBy && sortOrder) {
                 sortOptions[sortBy] = sortOrder === "desc" ? -1 : 1;
             }
-    
-            // Adicionar filtros de pesquisa
+        
             if (searchField && searchValue) {
                 filter[searchField] = new RegExp(searchValue, "i");
             }
-    
-            // Adicionar filtros de preço
+        
             if (minPrice !== undefined && maxPrice !== undefined) {
                 filter.preco = {
                     $gte: parseFloat(minPrice),
                     $lte: parseFloat(maxPrice),
                 };
             }
-    
+        
             try {
                 const produtos = await Produtos.findAll(filter, null);
                 const promises = produtos.map(async (produto) => {
-                    const stock = await Stock.findByRefProduto(
-                        produto.referencia
-                    );
+                    const stock = await Stock.findByRefProduto(produto.referencia);
                     if (stock) {
                         produto.stock = {
                             quantidade: stock.quantidade,
@@ -60,52 +56,42 @@ const produtoRouter = () => {
                         };
                     } else {
                         produto.stock = {
-                            anotacoes:
-                                "Não foi possível encontrar nenhuma associação do produto a pelo menos um stock!",
+                            quantidade: 0, // Considera produtos sem associação de stock como sem stock
+                            anotacoes: "Não foi possível encontrar nenhuma associação do produto a pelo menos um stock!",
                         };
                     }
                 });
-    
+        
                 await Promise.all(promises);
-    
+        
+                // Aplica o filtro de stockStatus após obter todos os produtos
+                let filteredProdutos = produtos;
+                if (stockStatus === 'inStock') {
+                    filteredProdutos = produtos.filter(produto => produto.stock && produto.stock.quantidade > 0);
+                } else if (stockStatus === 'outOfStock') {
+                    filteredProdutos = produtos.filter(produto => !produto.stock || produto.stock.quantidade <= 0);
+                }
+        
                 if (sortBy) {
-                    produtos.sort((a, b) => {
+                    filteredProdutos.sort((a, b) => {
                         const valueA = a[sortBy];
                         const valueB = b[sortBy];
-    
-                        if (
-                            typeof valueA === "number" &&
-                            typeof valueB === "number"
-                        ) {
-                            return sortOrder === "desc"
-                                ? valueB - valueA
-                                : valueA - valueB;
-                        } else if (
-                            typeof valueA === "string" &&
-                            typeof valueB === "string"
-                        ) {
-                            return sortOrder === "desc"
-                                ? valueB.localeCompare(valueA, "pt", {
-                                    sensitivity: "base",
-                                })
-                                : valueA.localeCompare(valueB, "pt", {
-                                    sensitivity: "base",
-                                });
+        
+                        if (typeof valueA === "number" && typeof valueB === "number") {
+                            return sortOrder === "desc" ? valueB - valueA : valueA - valueB;
+                        } else if (typeof valueA === "string" && typeof valueB === "string") {
+                            return sortOrder === "desc" ? valueB.localeCompare(valueA, "pt", { sensitivity: "base" }) : valueA.localeCompare(valueB, "pt", { sensitivity: "base" });
                         } else {
-                            return sortOrder === "desc"
-                                ? valueB - valueA
-                                : valueA - valueB;
+                            return sortOrder === "desc" ? valueB - valueA : valueA - valueB;
                         }
                     });
                 } else {
-                    produtos.sort((a, b) => {
-                        return defaultSort.referencia === 1
-                            ? a.referencia - b.referencia
-                            : b.referencia - a.referencia;
+                    filteredProdutos.sort((a, b) => {
+                        return defaultSort.referencia === 1 ? a.referencia - b.referencia : b.referencia - a.referencia;
                     });
                 }
-    
-                res.send(produtos);
+        
+                res.send(filteredProdutos);
             } catch (err) {
                 res.status(500).send("Erro ao procurar os produtos!");
             }

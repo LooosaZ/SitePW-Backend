@@ -23,8 +23,7 @@ function utilizadorController(UtilizadorModel) {
         updateResetToken,
         findByEmail,
         findFavorites,
-        updateFavorites,
-        updateProfilePicture
+        updateFavorites
     };
 
     function create(utilizador) {
@@ -238,23 +237,6 @@ function utilizadorController(UtilizadorModel) {
     // Método para atualizar o token de password para um utilizador
     async function updateResetToken(id, resetToken) {
         return await UtilizadorModel.findByIdAndUpdate(id, { resetToken });
-    }
-
-    function updateProfilePicture(username, image) {
-        return new Promise((resolve, reject) => {
-            UtilizadorModel.findOneAndUpdate(
-                { username },
-                { fotoPerfil: image },
-                { new: true }
-            )
-                .then((utilizador) => {
-                    if (!utilizador) {
-                        return reject("User not found.");
-                    }
-                    resolve(utilizador);
-                })
-                .catch((err) => reject(err));
-        });
     }
     return controller;
 }

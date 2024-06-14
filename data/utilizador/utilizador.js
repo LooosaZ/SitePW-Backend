@@ -19,8 +19,7 @@ var UtilizadorSchema = new Schema({
     nif: { type: String, require: true },
     email: { type: String, require: true },
     resetToken: { type: String, require: true },
-    favoritos: [{type: String, require: false}],
-    fotoPerfil: { type: String, require: false }
+    favoritos: [{type: String, require: false}]
 });
 
 let Utilizador = mongoose.model("Utilizador", UtilizadorSchema);

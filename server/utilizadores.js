@@ -7,11 +7,14 @@ const bcrypt = require("bcrypt");
 const utilizadorRouter = () => {
     let router = express();
 
+
+    
     router.use(bodyParser.json({ limit: "100mb" }));
     router.use(bodyParser.urlencoded({ limit: "100mb", extended: true }));
 
     router.use(function (req, res, next) {
-        let token = req.headers["x-access-token"] || req.headers["authorization"];
+        const token = req.headers["x-access-token"]?.split(' ')[1];
+        console.log("tocano->" + token);
         
         if (token && token.startsWith("Bearer ")) {
             token = token.slice(7, token.length);
@@ -311,83 +314,50 @@ const utilizadorRouter = () => {
     });
 
     router.route("/utilizador/favoritos")
-        .get(function (req, res, next) {
-            let token = req.headers["x-access-token"];
+    .get(function (req, res, next) {
+        let token = req.headers["x-access-token"];
 
-            Utilizadores.verifyToken(token)
-                .then((decoded) => {
-                    let username = decoded.username;
-                    Utilizadores.findFavorites(username)
-                        .then((favoritos) => {
-                            res.status(200).send(favoritos);
-                        })
-                        .catch((err) => {
-                            console.error("Erro ao procurar favoritos:", err);
-                            res.status(500).send({ message: "Erro ao procurar favoritos do utilizador" });
-                        });
-                })
-                .catch((err) => {
-                    res.status(401).send({ message: "Token inválido ou expirado" });
-                    console.log(err)
-                });
-        })
-        .put(function (req, res, next) {
-            let { referencia, add } = req.body;
-            let token = req.headers["x-access-token"];
+        Utilizadores.verifyToken(token)
+            .then((decoded) => {
+                let username = decoded.username;
+                Utilizadores.findFavorites(username)
+                    .then((favoritos) => {
+                        res.status(200).send(favoritos);
+                    })
+                    .catch((err) => {
+                        console.error("Erro ao procurar favoritos:", err);
+                        res.status(500).send({ message: "Erro ao procurar favoritos do utilizador" });
+                    });
+            })
+            .catch((err) => {
+                res.status(401).send({ message: "Token inválido ou expirado" });
+                console.log(err)
+            });
+    })
+    .put(async (req, res, next)  => {
+        const { referencia, add } = req.body;
 
-            Utilizadores.verifyToken(token)
-                .then((decoded) => {
-                    let username = decoded.username;
-                    Utilizadores.updateFavorites(username, referencia, add)
-                        .then(() => {
-                            res.status(200).send({ message: "Favorito atualizado com sucesso" });
-                        })
-                        .catch((err) => {
-                            console.error("Erro ao atualizar favoritos:", err);
-                            res.status(500).send({ message: "Erro ao atualizar favoritos" });
-                        });
-                })
-                .catch((err) => {
-                    res.status(401).send({ message: "Token inválido ou expirado" });
-                    console.log(err)
-                });
-        });
-
-    router.route("/utilizador/me/fotoPerfil")
-        .put(Utilizadores.authorize([scopes["administrador"], scopes["gestor"], scopes["utilizador"]]), function (req, res, next) {
-            let token = req.headers["x-access-token"];
-            let { image } = req.body;
-
-            if (!image) {
-                return res.status(400).send({ error: 'Image is required.' });
+    Utilizadores.findOne({ username: req.username })
+        .then(utilizador => {
+            if (!utilizador) {
+                return res.status(404).send({ message: "Utilizador não encontrado" });
             }
-
-            Utilizadores.verifyToken(token)
-                .then((decoded) => {
-                    let username = decoded.username;
-                    Utilizadores.updateProfilePicture(username, image)
-                        .then((utilizador) => { res.status(200).send({ message: 'Profile picture updated successfully.', utilizador }); })
-                        .catch((err) => { res.status(500).send("Erro ao atualizar a foto de perfil!"); });
-                })
-                .catch((err) => { res.status(401).send("Erro ao pesquisar os seus dados!"); });
+            if (add) {
+                if (!utilizador.favoritos.includes(referencia)) {
+                    utilizador.favoritos.push(referencia);
+                }
+            } else {
+                utilizador.favoritos = utilizador.favoritos.filter(fav => fav !== referencia);
+            }
+            return Utilizadores.save();
+        })
+        .then(() => res.status(200).send({ message: "Favoritos atualizados com sucesso" }))
+        .catch(err => {
+            console.error("Erro ao atualizar favoritos:", err);
+            res.status(500).send({ message: "Erro ao atualizar favoritos" });
         });
+});
 
-    router.route("/utilizador/me/data")
-        .get(Utilizadores.authorize([scopes["administrador"], scopes["gestor"], scopes["utilizador"]]), function (req, res, next) {
-            let token = req.headers["x-access-token"];
-
-            Utilizadores.verifyToken(token)
-                .then((decoded) => {
-                    let username = decoded.username;
-                    Utilizadores.findByUsername(username)
-                        .then((utilizador) => {
-                            const { username, nome, email, telemovel } = utilizador;
-                            res.status(200).send({ username, nome, email, telemovel });
-                        })
-                        .catch((err) => { res.status(404).send("Não foi possível encontrar um utilizador com esse username!"); });
-                })
-                .catch(() => { res.status(401).send("Erro ao pesquisar os seus dados!"); });
-        });
     return router;
 };
 

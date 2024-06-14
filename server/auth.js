@@ -69,13 +69,13 @@ function AuthRouter() {
                 }
                 return Utilizadores.createToken(utilizador);
             })
-            .then(({ token }) => {
-                res.cookie('token', token, { httpOnly: false, secure: true, sameSite: 'Strict', maxAge: 24 * 60 * 60 * 1000 });
+            .then(token => {             
+                res.cookie('token', token, { httpOnly: false, secure: false, sameSite: 'Strict', maxAge: 24 * 60 * 60 * 1000 });
                 res.send({ auth: true });
             })
             .catch(err => {
                 res.status(401).json({ auth: false, message: err.message });
-            });
+            }); 
     });
 
     router.route("/forgot-password").post(async function (req, res, next) {
