@@ -4,6 +4,7 @@ const Produtos = require("../data/produto");
 const Utilizadores = require("../data/utilizador");
 const scopes = require("../data/utilizador/scopes");
 const Stock = require("../data/stock");
+const verifyToken = require("../decodeToken.js");
 
 const produtoRouter = () => {
     let router = express();
@@ -22,33 +23,33 @@ const produtoRouter = () => {
                 minPrice,
                 maxPrice,
                 stockStatus,
-                favoritesOnly
+                page
             } = req.query;
-        
+
             console.log("Parâmetros recebidos:", req.query);
-        
+
             const defaultSort = { referencia: 1 };
             const sortOptions = {};
             const filter = {};
-        
+
             if (sortBy && sortOrder) {
                 sortOptions[sortBy] = sortOrder === "desc" ? -1 : 1;
             }
-        
+
             if (searchField && searchValue) {
                 filter[searchField] = new RegExp(searchValue, "i");
             }
-        
+
             if (minPrice !== undefined && maxPrice !== undefined) {
                 filter.preco = {
                     $gte: parseFloat(minPrice),
                     $lte: parseFloat(maxPrice),
                 };
             }
-        
+
             try {
                 let produtos = await Produtos.findAll(filter, null);
-        
+
                 const promises = produtos.map(async (produto) => {
                     const stock = await Stock.findByRefProduto(produto.referencia);
                     if (stock) {
@@ -64,20 +65,20 @@ const produtoRouter = () => {
                         };
                     }
                 });
-        
+
                 await Promise.all(promises);
-        
+
                 if (stockStatus === 'inStock') {
                     produtos = produtos.filter(produto => produto.stock && produto.stock.quantidade > 0);
                 } else if (stockStatus === 'outOfStock') {
                     produtos = produtos.filter(produto => !produto.stock || produto.stock.quantidade <= 0);
                 }
-        
+
                 if (sortBy) {
                     produtos.sort((a, b) => {
                         const valueA = a[sortBy];
                         const valueB = b[sortBy];
-        
+
                         if (typeof valueA === "number" && typeof valueB === "number") {
                             return sortOrder === "desc" ? valueB - valueA : valueA - valueB;
                         } else if (typeof valueA === "string" && typeof valueB === "string") {
@@ -91,15 +92,18 @@ const produtoRouter = () => {
                         return defaultSort.referencia === 1 ? a.referencia - b.referencia : b.referencia - a.referencia;
                     });
                 }
-        
-                res.send(produtos);
+
+                const totalPages = Math.ceil(produtos.length / 6);
+                const productsPerPage = produtos.slice((page - 1) * 6, page * 6);
+
+                res.send({ products: productsPerPage, totalPages });
             } catch (err) {
                 res.status(500).send("Erro ao procurar os produtos!");
             }
         })
         .post(
             Utilizadores.authorize([scopes["administrador"], scopes["gestor"]]),
-            function (req, res, next) {
+            verifyToken,function (req, res, next) {
                 let body = req.body;
 
                 if (
@@ -117,9 +121,7 @@ const produtoRouter = () => {
                 }
                 Produtos.findByreferencia(body.referencia).then((produto) => {
                     if (produto) {
-                        res.status(500).send(
-                            "Essa referência já existe, tente outra!"
-                        );
+                        res.status(500).json({ message: "Essa referência já existe" });
                         return;
                     }
                     Produtos.create(body)
@@ -147,7 +149,6 @@ const produtoRouter = () => {
                     return;
                 }
 
-                // Fetch the stock associated with the product
                 const stock = await Stock.findByRefProduto(referencia);
                 if (stock) {
                     produto.stock = {
@@ -167,36 +168,33 @@ const produtoRouter = () => {
                 console.log(err);
             }
         })
-        .put(
-            Utilizadores.authorize([scopes["administrador"], scopes["gestor"]]),
-            function (req, res, next) {
-                let referencia = req.params.referencia;
-                let body = req.body;
+        .put(async function (req, res, next) {
+            let referencia = req.params.referencia;
+            let body = req.body;
 
-                Produtos.findByreferencia(referencia)
-                    .then((produto) => {
-                        if (!produto) {
-                            res.status(404).send(
-                                "Não foi possível encontrar um produto com essa referência!"
+            Produtos.findByreferencia(referencia)
+                .then((produto) => {
+                    if (!produto) {
+                        res.status(404).send(
+                            "Não foi possível encontrar um produto com essa referência!"
+                        );
+                        return;
+                    }
+                    delete body.referencia;
+                    Produtos.update(referencia, body)
+                        .then((produto) => {
+                            res.status(200).send(produto);
+                        })
+                        .catch((err) => {
+                            res.status(500).send(
+                                "Erro ao atualizar o produto!"
                             );
-                            return;
-                        }
-                        delete body.referencia;
-                        Produtos.update(referencia, body)
-                            .then((produto) => {
-                                res.status(200).send(produto);
-                            })
-                            .catch((err) => {
-                                res.status(500).send(
-                                    "Erro ao atualizar o produto!"
-                                );
-                            });
-                    })
-                    .catch((err) => {
-                        res.status(500).send("Erro ao procurar o produto!");
-                    });
-            }
-        )
+                        });
+                })
+                .catch((err) => {
+                    res.status(500).send("Erro ao procurar o produto!");
+                });
+        })
         .delete(
             Utilizadores.authorize([scopes["administrador"], scopes["gestor"]]),
             function (req, res) {
@@ -229,19 +227,19 @@ const produtoRouter = () => {
             }
         );
 
-        router.route("/produtos/:referencia/imagem")
-    .put(Utilizadores.authorize([scopes["administrador"], scopes["gestor"]]), async (req, res) => {
-        try {
-            const { imagem } = req.body;
-            const referencia = req.params.referencia;
+    router.route("/produtos/:referencia/imagem")
+        .put(Utilizadores.authorize([scopes["administrador"], scopes["gestor"]]), async (req, res) => {
+            try {
+                const { imagem } = req.body;
+                const referencia = req.params.referencia;
 
-            // Update the product's image
-            const updatedProduto = await Produtos.updateImage(referencia, imagem);
-            res.status(200).send(updatedProduto);
-        } catch (err) {
-            res.status(500).send("Erro ao atualizar a imagem do produto");
-        }
-    });
+                const updatedProduto = await Produtos.updateImage(referencia, imagem);
+                res.status(200).send(updatedProduto);
+            } catch (err) {
+                res.status(500).send("Erro ao atualizar a imagem do produto");
+            }
+        });
+
     return router;
 };
 module.exports = produtoRouter;

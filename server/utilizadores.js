@@ -3,6 +3,8 @@ const express = require("express");
 const Utilizadores = require("../data/utilizador");
 const scopes = require("../data/utilizador/scopes");
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const config = require("../config");
 const verifyToken = require('../decodeToken');
 const Produtos = require("../data/produto");
 
@@ -17,7 +19,7 @@ const utilizadorRouter = () => {
         console.log("tocano->" + token);
 
 
-        if (req.originalUrl && (req.originalUrl.includes('/menu/produtos') && req.method === 'GET') ) {
+        if (req.originalUrl && (req.originalUrl.includes('/menu/produtos') && req.method === 'GET')) {
             next();
         } else {
             if (!token) {
@@ -136,62 +138,67 @@ const utilizadorRouter = () => {
         });
 
     router.route("/utilizadores/:username")
-        .get(Utilizadores.authorize([scopes["administrador"]]), function (req, res, next) {
-            let username = req.params.username;
+    .get(Utilizadores.authorize([scopes["administrador"]]), function (req, res, next) {
+        let username = req.params.username;
 
-            Utilizadores.findByUsername(username)
-                .then((utilizador) => { res.status(200).send(utilizador); })
-                .catch((err) => { res.status(404).send("Não foi possível encontrar um utilizador com esse username!"); });
-        })
-        .put(Utilizadores.authorize([scopes["administrador"]]), function (req, res, next) {
-            let username = req.params.username;
-            let body = req.body;
+        Utilizadores.findByUsername(username)
+            .then((utilizador) => { res.status(200).send(utilizador) })
+            .catch((err) => { res.status(404).send("Não foi possível encontrar um utilizador com esse username!"); });
+    })
+  .put(Utilizadores.authorize([scopes["administrador"]]), function (req, res, next) {
+    let username = req.params.username;
+    let body = req.body;
 
-            Utilizadores.findByUsername(username)
-                .then((utilizador) => {
-                    if (!utilizador) {
-                        res.status(404).send("Não foi possível encontrar um utilizador com esse username!");
-                        return;
+    Utilizadores.findByUsername(username)
+      .then((utilizador) => {
+        if (!utilizador) {
+          res.status(404).send("Não foi possível encontrar um utilizador com esse username!");
+          return;
+        }
+
+        Utilizadores.findByUsername(body.username)
+        .then((verificarUser) => {
+          if (verificarUser) {
+            res.status(400).send("Este username já está em uso. Escolha outro!");
+          } else {
+            Utilizadores.findByEmail(body.email)
+              .then((verificarEmail) => {
+                if (verificarEmail) {
+                  res.status(400).send("Este email já está em uso. Escolha outro!");
+                } else {
+                    if (body.role && body.role.nome === 'administrador') {
+                        body.role.scopes = ['administrador'];
+                    } else if (body.role && body.role.nome !== 'administrador') {
+                        body.role.scopes = ['utilizador'];
+                    if (!scopes[body.role.nome]) {
+                      res.status(400).send("Role inválida: " + body.role.nome);
+                      return;
                     }
-                    Utilizadores.findByUsername(body.username)
-                        .then((verificarUser) => {
-                            if (verificarUser) {
-                                res.status(400).send("Este username já está em uso. Escolha outro!");
-                            } else {
-                                Utilizadores.findByEmail(body.email)
-                                    .then((verificarEmail) => {
-                                        if (verificarEmail) {
-                                            res.status(400).send("Este email já está em uso. Escolha outro!");
-                                        } else {
-                                            for (let scope of body.role.scopes) {
-                                                if (!scopes[scope]) {
-                                                    res.status(400).send("Role inválida: " + scope);
-                                                    return;
-                                                }
-                                            }
-                                            delete body.password;
-                                            delete body.resetToken;
-                                            Utilizadores.updateByUsername(
-                                                username,
-                                                body
-                                            )
-                                                .then((utilizador) => { res.status(200).send(utilizador); })
-                                                .catch((err) => {
-                                                    res.status(404).send("Erro ao atualizar o utilizador!");
-                                                });
-                                        }
-                                    })
-                                    .catch((err) => {
-                                        res.status(500).send("Ocorreu um erro ao verificar o email!");
-                                    });
-                            }
-                        })
-                        .catch((err) => {
-                            res.status(500).send("Ocorreu um erro ao verificar o username!");
-                        });
-                })
-                .catch((err) => { res.status(500).send("Erro ao procurar o utilizador"); });
+                  }
+
+                  delete body.password;
+                  delete body.resetToken;
+                  Utilizadores.updateByUsername(username, body)
+                    .then((utilizador) => { res.status(200).send(utilizador); })
+                    .catch((err) => {
+                      res.status(404).send("Erro ao atualizar o utilizador!");
+                      console.log(err)
+                    });
+                }
+              })
+              .catch((err) => {
+                res.status(500).send("Ocorreu um erro ao verificar o email!");
+                console.log(err);
+              });
+          }
         })
+        .catch((err) => {
+          res.status(500).send("Ocorreu um erro ao verificar o username!");
+          console.log("verify username");
+        });
+    })
+    .catch((err) => { res.status(500).send("Erro ao procurar o utilizador"); });
+})
         .delete(Utilizadores.authorize([scopes["administrador"]]), function (req, res) {
             let username = req.params.username;
 
@@ -277,37 +284,37 @@ const utilizadorRouter = () => {
                 .catch(() => { res.status(500).send("Erro ao pesquisar os dados!"); });
         });
 
-        router.route("/utilizador/me/alterar-password").put(
-            verifyToken,
-            Utilizadores.authorize([scopes.administrador, scopes.gestor, scopes.utilizador]),
-            async function (req, res, next) {
-              try {
+    router.route("/utilizador/me/alterar-password").put(
+        verifyToken,
+        Utilizadores.authorize([scopes.administrador, scopes.gestor, scopes.utilizador]),
+        async function (req, res, next) {
+            try {
                 let { passwordAntiga, novaPassword } = req.body;
                 let username = req.username;
-          
+
                 const utilizador = await Utilizadores.findByUsername(username);
-          
+
                 if (!utilizador) {
-                  return res.status(404).json({ message: "Utilizador não encontrado" });
+                    return res.status(404).json({ message: "Utilizador não encontrado" });
                 }
-          
+
                 const isPasswordCorrect = bcrypt.compareSync(passwordAntiga, utilizador.password);
                 if (!isPasswordCorrect) {
-                  return res.status(400).json({ message: "A antiga password está incorreta" });
+                    return res.status(400).json({ message: "A antiga password está incorreta" });
                 }
-          
+
                 const hashedPassword = bcrypt.hashSync(novaPassword, 10);
-          
+
                 await Utilizadores.updateByUsername(username, { password: hashedPassword });
-          
+
                 return res.status(200).json({ message: "Password alterada com sucesso" });
-              } catch (err) {
+            } catch (err) {
                 console.error("Erro ao alterar a password:", err);
                 return res.status(500).json({ message: "Erro ao alterar a password" });
-              }
             }
-          );
-          
+        }
+    );
+
 
     router.route("/utilizador/favoritos")
         .get(verifyToken, (req, res, next) => {
@@ -336,11 +343,11 @@ const utilizadorRouter = () => {
         try {
             const username = req.username;
             const favoriteReferences = await Utilizadores.findFavorites(username);
-    
+
             if (favoriteReferences.length === 0) {
                 return res.json([]); // Retorna um array vazio se não houver favoritos
             }
-    
+
             // Usando Promise.all para buscar cada produto individualmente
             const favoriteProducts = await Promise.all(
                 favoriteReferences.map(async (reference) => {
@@ -348,7 +355,7 @@ const utilizadorRouter = () => {
                     return product;
                 })
             );
-    
+
             res.json(favoriteProducts.filter(product => product !== null)); // Filtrar produtos nulos
         } catch (err) {
             console.error('Error fetching favorite products:', err);
@@ -362,14 +369,53 @@ const utilizadorRouter = () => {
                 const { profilePicture } = req.body;
                 const username = req.username;
 
-                // Update the user's profile picture
                 const updatedUtilizador = await Utilizadores.updateProfilePicture(username, profilePicture);
                 res.status(200).send(updatedUtilizador);
             } catch (err) {
                 res.status(500).send("Erro ao atualizar a foto de perfil do utilizador");
             }
         });
-        
+
+        router.route("/utilizador/:username/profile-picture")
+        .put( async (req, res, next) => {
+            try {
+                const body = req.body;
+                let username = req.params.username;
+
+                // Verificar se o novo username já está em uso
+                const verificarUser = await Utilizadores.findByUsername(body.username);
+                if (verificarUser && verificarUser.username !== username) {
+                    return res.status(400).send("Este username já está em uso. Escolha outro!");
+                }
+
+                delete body.password;
+                delete body.resetToken;
+                delete body.role;
+
+                // Buscar o utilizador pelo nome de utilizador original
+                const utilizador = await Utilizadores.findByUsername(username);
+                if (!utilizador) {
+                    return res.status(404).send("Utilizador não encontrado");
+                }
+
+                const originalUsername = utilizador.username;
+
+                // Atualizar os dados do utilizador
+                await Utilizadores.updateByUsername(username, body);
+
+                // Verificar se o username foi alterado
+                if (body.username && body.username !== originalUsername) {
+                    // Username foi alterado, é necessário fazer logout
+                    return res.status(200).send({ message: "Username updated, please log in again", logout: true });
+                }
+
+                res.status(200).send(utilizador);
+            } catch (err) {
+                console.error("Erro ao atualizar o utilizador:", err);
+                res.status(500).send("Erro ao atualizar o utilizador!");
+            }
+        })
+
     return router;
 };
 
