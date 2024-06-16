@@ -50,12 +50,13 @@ function utilizadorController(UtilizadorModel) {
         });
     }
 
-    function createToken(utilizador) {
+    function createToken(utilizador, scopes) {
         let token = jwt.sign(
             {
                 username: utilizador.username,
                 nome: utilizador.nome,
                 role: utilizador.role.scopes,
+                scopes: scopes
             },
             config.secret,
             {
@@ -138,17 +139,17 @@ function utilizadorController(UtilizadorModel) {
     }
 
     function findFavorites(username) {
-        return UtilizadorModel.findOne({ username })
-            .then((utilizador) => {
-                if (!utilizador) {
-                    throw new Error("Utilizador não encontrado");
-                }
-                return utilizador.token;
-            })
-            .catch((err) => {
-                throw new Error("Erro ao encontrar favoritos do utilizador: " + err.message);
-            });
-    }
+    return UtilizadorModel.findOne({ username })
+        .then((utilizador) => {
+            if (!utilizador) {
+                throw new Error("Utilizador não encontrado");
+            }
+            return utilizador.favoritos || []; // Return the favoritos array
+        })
+        .catch((err) => {
+            throw new Error("Erro ao encontrar favoritos do utilizador: " + err.message);
+        });
+}
 
     function findByUsername(username) {
         return new Promise(function (resolve, reject) {
@@ -174,10 +175,10 @@ function utilizadorController(UtilizadorModel) {
                         throw new Error('Utilizador não encontrado');
                     }
     
-                    // Verifique se a referência já está nos favoritos do usuário
+                    // Verifique se a referência já está nos favoritos do utilizador
                     const index = user.favoritos.indexOf(referencia);
     
-                    // Adicione ou remova a referência dos favoritos do usuário, dependendo do valor de 'add'
+                    // Adicione ou remova a referência dos favoritos do utilizador, dependendo do valor de 'add'
                     if (add) {
                         if (index === -1) {
                             user.favoritos.push(referencia); // Adiciona a referência aos favoritos
@@ -188,7 +189,7 @@ function utilizadorController(UtilizadorModel) {
                         }
                     }
     
-                    // Salve as alterações no usuário
+                    // Salve as alterações no utilizador
                     return user.save();
                 })
                 .then(() => resolve({ message: 'Favoritos atualizados com sucesso' }))

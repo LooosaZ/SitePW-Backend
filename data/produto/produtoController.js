@@ -6,6 +6,8 @@ function ProdutoController(ProdutoModel) {
         findByreferencia,
         removeByreferencia,
         findByRefProduto,
+        findReferenciaFav,
+        updateImage
     };
 
     function create(values) {
@@ -29,6 +31,15 @@ function ProdutoController(ProdutoModel) {
                 .catch((err) => reject(err));
         });
     }    
+
+    async function findReferenciaFav(refProduto) {
+        try {
+            const produtos = await ProdutoModel.find({ referencia: { $in: refProduto.referencia } });
+            return produtos;
+        } catch (err) {
+            throw new Error(err);
+        }
+    }
 
     function findByreferencia(referencia) {
         return new Promise(function (resolve, reject) {
@@ -63,6 +74,14 @@ function ProdutoController(ProdutoModel) {
         return new Promise(function (resolve, reject) {
             ProdutoModel.findOne({ referencia: refProduto })
                 .then((produto) => resolve(produto))
+                .catch((err) => reject(err));
+        });
+    }
+
+    function updateImage(referencia, imagem) {
+        return new Promise(function (resolve, reject) {
+            ProdutoModel.findOneAndUpdate({ referencia }, { imagem })
+                .then(() => resolve("A imagem do produto foi atualizada com sucesso!"))
                 .catch((err) => reject(err));
         });
     }

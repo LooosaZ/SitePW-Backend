@@ -14,7 +14,6 @@ const produtoRouter = () => {
     router
         .route("/produtos")
         .get(async function (req, res, next) {
-            console.log("Parâmetros recebidos:", req.query);
             const {
                 sortBy,
                 sortOrder,
@@ -22,9 +21,12 @@ const produtoRouter = () => {
                 searchValue,
                 minPrice,
                 maxPrice,
-                stockStatus // Captura do parâmetro stockStatus
+                stockStatus,
+                favoritesOnly
             } = req.query;
-            
+        
+            console.log("Parâmetros recebidos:", req.query);
+        
             const defaultSort = { referencia: 1 };
             const sortOptions = {};
             const filter = {};
@@ -45,7 +47,8 @@ const produtoRouter = () => {
             }
         
             try {
-                const produtos = await Produtos.findAll(filter, null);
+                let produtos = await Produtos.findAll(filter, null);
+        
                 const promises = produtos.map(async (produto) => {
                     const stock = await Stock.findByRefProduto(produto.referencia);
                     if (stock) {
@@ -56,7 +59,7 @@ const produtoRouter = () => {
                         };
                     } else {
                         produto.stock = {
-                            quantidade: 0, // Considera produtos sem associação de stock como sem stock
+                            quantidade: 0,
                             anotacoes: "Não foi possível encontrar nenhuma associação do produto a pelo menos um stock!",
                         };
                     }
@@ -64,16 +67,14 @@ const produtoRouter = () => {
         
                 await Promise.all(promises);
         
-                // Aplica o filtro de stockStatus após obter todos os produtos
-                let filteredProdutos = produtos;
                 if (stockStatus === 'inStock') {
-                    filteredProdutos = produtos.filter(produto => produto.stock && produto.stock.quantidade > 0);
+                    produtos = produtos.filter(produto => produto.stock && produto.stock.quantidade > 0);
                 } else if (stockStatus === 'outOfStock') {
-                    filteredProdutos = produtos.filter(produto => !produto.stock || produto.stock.quantidade <= 0);
+                    produtos = produtos.filter(produto => !produto.stock || produto.stock.quantidade <= 0);
                 }
         
                 if (sortBy) {
-                    filteredProdutos.sort((a, b) => {
+                    produtos.sort((a, b) => {
                         const valueA = a[sortBy];
                         const valueB = b[sortBy];
         
@@ -86,12 +87,12 @@ const produtoRouter = () => {
                         }
                     });
                 } else {
-                    filteredProdutos.sort((a, b) => {
+                    produtos.sort((a, b) => {
                         return defaultSort.referencia === 1 ? a.referencia - b.referencia : b.referencia - a.referencia;
                     });
                 }
         
-                res.send(filteredProdutos);
+                res.send(produtos);
             } catch (err) {
                 res.status(500).send("Erro ao procurar os produtos!");
             }
@@ -138,14 +139,14 @@ const produtoRouter = () => {
         .route("/produtos/:referencia")
         .get(async function (req, res, next) {
             let referencia = req.params.referencia;
-    
+
             try {
                 const produto = await Produtos.findByreferencia(referencia);
                 if (!produto) {
                     res.status(404).send("Não foi possível encontrar um produto com essa referência!");
                     return;
                 }
-    
+
                 // Fetch the stock associated with the product
                 const stock = await Stock.findByRefProduto(referencia);
                 if (stock) {
@@ -159,7 +160,7 @@ const produtoRouter = () => {
                         anotacoes: "Não foi possível encontrar nenhuma associação do produto a pelo menos um stock!",
                     };
                 }
-    
+
                 res.status(200).send(produto);
             } catch (err) {
                 res.status(500).send("Erro ao procurar o produto!");
@@ -226,7 +227,21 @@ const produtoRouter = () => {
                         res.status(500).send("Erro ao procurar o produto!");
                     });
             }
-        );        
+        );
+
+        router.route("/produtos/:referencia/imagem")
+    .put(Utilizadores.authorize([scopes["administrador"], scopes["gestor"]]), async (req, res) => {
+        try {
+            const { imagem } = req.body;
+            const referencia = req.params.referencia;
+
+            // Update the product's image
+            const updatedProduto = await Produtos.updateImage(referencia, imagem);
+            res.status(200).send(updatedProduto);
+        } catch (err) {
+            res.status(500).send("Erro ao atualizar a imagem do produto");
+        }
+    });
     return router;
 };
 module.exports = produtoRouter;

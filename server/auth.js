@@ -61,23 +61,24 @@ function AuthRouter() {
 
     router.post("/login", function (req, res) {
         const { username, password } = req.body;
-
+      
         Utilizadores.findUser({ username, password })
-            .then(utilizador => {
-                if (!utilizador) {
-                    throw new Error("Utilizador não encontrado");
-                }
-                return Utilizadores.createToken(utilizador);
-            })
-            .then(token => {             
-                res.cookie('token', token, { httpOnly: false, secure: false, sameSite: 'Strict', maxAge: 24 * 60 * 60 * 1000 });
-                res.send({ auth: true });
-            })
-            .catch(err => {
-                res.status(401).json({ auth: false, message: err.message });
-            }); 
-    });
-
+          .then(utilizador => {
+            if (!utilizador) {
+              throw new Error("Utilizador não encontrado");
+            }
+      
+            const scopes = utilizador.role.scopes || []; // Ajuste conforme a estrutura do seu objeto de utilizador
+      
+            const token = Utilizadores.createToken(utilizador, scopes); // Ajuste para retornar apenas o token
+      
+            res.cookie('token', token, { httpOnly: false, secure: false, sameSite: 'Strict', maxAge: 24 * 60 * 60 * 1000 });
+            res.send({ auth: true, scopes });
+          })
+          .catch(err => {
+            res.status(401).json({ auth: false, message: err.message });
+          });
+      });
     router.route("/forgot-password").post(async function (req, res, next) {
         try {
             const { email } = req.body;

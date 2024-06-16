@@ -7,7 +7,6 @@ let RoleSchema = new Schema({
     scopes: [{ type: String, enum: [scopes["administrador"], scopes["gestor"], scopes["utilizador"]] }]
 });
 
-
 var UtilizadorSchema = new Schema({
     username: { type: String, require: true, unique: true },
     password: { type: String, require: true },
@@ -19,7 +18,8 @@ var UtilizadorSchema = new Schema({
     nif: { type: String, require: true },
     email: { type: String, require: true },
     resetToken: { type: String, require: true },
-    favoritos: [{type: String, require: false}]
+    favoritos: [{ type: String, require: false }],
+    fotoPerfil: { type: String, require: false }
 });
 
 let Utilizador = mongoose.model("Utilizador", UtilizadorSchema);

@@ -44,7 +44,7 @@ function vendaController(VendaModel) {
             VendaModel.find({ 'cliente.usernameUtilizador' : usernameUtilizador })
                 .then((vendas) => {
                     if (vendas.length === 0) {
-                        reject("Nenhuma venda encontrada para este usuário.");
+                        reject("Nenhuma venda encontrada para este utilizador.");
                         return;
                     }
                     resolve(vendas);
