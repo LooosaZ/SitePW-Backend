@@ -4,6 +4,7 @@ const Stocks = require("../data/stock");
 const ProdutoController = require("../data/produto");
 const Utilizadores = require("../data/utilizador");
 const scopes = require("../data/utilizador/scopes");
+const verifyToken = require("../decodeToken");
 
 const stockRouter = () => {
     let router = express();
@@ -76,7 +77,7 @@ const stockRouter = () => {
         });
 
     router.route("/stock/:referencia")
-        .get(Utilizadores.authorize([scopes["administrador"], scopes["gestor"]]), function (req, res, next) {
+        .get(Utilizadores.authorize([scopes["administrador"], scopes["gestor"]]), verifyToken, function (req, res, next) {
             let referencia = req.params.referencia;
 
             Stocks.findByReferencia(referencia)
@@ -104,7 +105,7 @@ const stockRouter = () => {
                 })
                 .catch((err) => { res.status(500).send("Erro ao pesquisar o stock."); });
         })
-        .delete(Utilizadores.authorize([scopes["administrador"], scopes["gestor"]]),function (req, res, next) {
+        .delete(Utilizadores.authorize([scopes["administrador"], scopes["gestor"]]), function (req, res, next) {
             let referencia = req.params.referencia;
 
             Stocks.findByReferencia(referencia)
@@ -119,6 +120,47 @@ const stockRouter = () => {
                 })
                 .catch((err) => { res.status(500).send("Erro ao pesquisar o stock!"); });
         });
+
+    router.route("/stocks/:refProduto")
+    .get(Utilizadores.authorize([scopes["administrador"], scopes["gestor"]]), verifyToken, function (req, res, next) {
+        let referencia = req.params.refProduto;
+
+        Stocks.findByRefProduto(referencia)
+            .then((verificarStock) => {
+                if (verificarStock) {
+                    res.status(200).json(verificarStock);
+                } else {
+                    res.status(404).send("Stock não encontrado");
+                }
+            })
+            .catch((err) => {
+                console.error("Erro ao verificar stock:", err);
+                res.status(500).send("Erro ao verificar stock!");
+            });
+    })
+    .put(Utilizadores.authorize([scopes["administrador"], scopes["gestor"]]), verifyToken, function (req, res, next) {
+        let referencia = req.params.refProduto;
+        let quantity = req.body.quantity;
+    
+        // Validate the quantity value
+        if (typeof quantity !== 'number' || quantity < 0) {
+            res.status(400).send("Invalid quantity value.");
+            console.log('invalid quantity value');
+            return;
+        }
+    
+        Stocks.updateByRefProduto(referencia, { quantidade: quantity })
+            .then(() => {
+                res.status(200).send("Stock atualizado com sucesso.");
+                console.log("Stock atualizado com sucesso")
+            })
+            .catch((err) => {
+                console.error("Erro ao atualizar stock:", err);
+                res.status(500).send("Erro ao atualizar stock!");
+            });
+    })
+    
+
     return router;
 };
 

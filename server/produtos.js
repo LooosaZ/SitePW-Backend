@@ -93,8 +93,8 @@ const produtoRouter = () => {
                     });
                 }
 
-                const totalPages = Math.ceil(produtos.length / 6);
-                const productsPerPage = produtos.slice((page - 1) * 6, page * 6);
+                const totalPages = Math.ceil(produtos.length / 7);
+                const productsPerPage = produtos.slice((page - 1) * 7, page * 7);
 
                 res.send({ products: productsPerPage, totalPages });
             } catch (err) {
@@ -237,6 +237,33 @@ const produtoRouter = () => {
                 res.status(200).send(updatedProduto);
             } catch (err) {
                 res.status(500).send("Erro ao atualizar a imagem do produto");
+            }
+        });
+
+        router.route("/produtos/imagem/:referencia")
+        .get(async function (req, res, next) {
+
+            const referencia = parseInt(req.params.referencia);
+            console.log('Referência do produto:', referencia);
+
+
+            try {
+                // Simula a busca no banco de dados pelo produto com a referência fornecida
+                const produto = await Produtos.findByreferencia({ referencia });
+
+                if (!produto) {
+                    return res.status(404).send('Produto não encontrado.');
+                }
+
+                // Simulação de resposta com dados do produto
+                res.status(200).json({
+                    nome: produto.nome,
+                    preco: produto.preco,
+                    imagem: produto.imagem
+                });
+            } catch (error) {
+                console.error('Erro ao buscar detalhes do produto:', error);
+                res.status(500).send('Erro ao buscar detalhes do produto.');
             }
         });
 

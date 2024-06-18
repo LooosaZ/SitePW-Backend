@@ -1,6 +1,5 @@
 const Stock = require("./stock");
 
-
 function stockController(StockModel) {
     let controller = {
         create,
@@ -11,7 +10,8 @@ function stockController(StockModel) {
         findByRefProduto,
         removeByReferencia,
         updateStockDelete,
-        updateStock
+        updateStock,
+        updateByRefProduto
     };
 
     function create(values) {
@@ -141,6 +141,19 @@ function stockController(StockModel) {
         } catch (error) {
             throw error;
         }
+    }
+
+    function updateByRefProduto(refProduto, stock) {
+        return new Promise(function (resolve, reject) {
+            StockModel.findOneAndUpdate({ refProduto }, stock, { new: true })
+                .then((updatedStock) => {
+                    if (!updatedStock) {
+                        reject(`Produto com referência ${refProduto} não encontrado`);
+                    }
+                    resolve(updatedStock);
+                })
+                .catch((err) => reject(err));
+        });
     }
 
     return controller;

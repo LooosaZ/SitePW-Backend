@@ -6,7 +6,9 @@ function vendaController(VendaModel) {
         findByNrVenda,
         removeByNrVenda,
         findByUsername,
-        findByNrVendaAndUsername
+        findByNrVendaAndUsername,
+        findCarrinho,
+        gerarAutoIncremental
     };
 
     function create(values) {
@@ -83,6 +85,32 @@ function vendaController(VendaModel) {
                         reject("Não foi possível encontrar uma venda com essa referência!");
                     }
                     resolve();
+                })
+                .catch((err) => reject(err));
+        });
+    }
+
+    function findCarrinho(usernameUtilizador) {
+        return new Promise(function (resolve, reject) {
+            VendaModel.find({
+                'cliente.usernameUtilizador': usernameUtilizador,
+                'estado': 'no carrinho'
+            })
+            .then((vendas) => resolve(vendas))
+            .catch((err) => reject(err));
+        });
+    }
+
+    function gerarAutoIncremental() {
+        return new Promise(function (resolve, reject) {
+            VendaModel.find({}).sort({ nrVenda: 1 })
+                .then((vendas) => {
+                    if (vendas.length === 0) {
+                        resolve(1); // Se não houver vendas, retorna 1
+                    } else {
+                        let ultimoNrVenda = vendas[vendas.length - 1].nrVenda;
+                        resolve(ultimoNrVenda + 1); // Retorna o próximo número de venda disponível
+                    }
                 })
                 .catch((err) => reject(err));
         });

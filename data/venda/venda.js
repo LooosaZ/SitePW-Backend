@@ -7,6 +7,7 @@ let ProdutoSchema = new Schema({
     nome: { type: String, require: true },
     quantidade: {type: Number, require: true},
     preco: { type: Number, require: true },
+    imagem: {type: String, require: false}
 });
 
 let utilizadorSchema = new Schema({
